@@ -1,0 +1,448 @@
+/* Thème : couleurs en variables, mode sombre automatique. Pensé mobile d'abord. */
+:root {
+  --accent: #e4007f;
+  --accent-ink: #ffffff;
+  --bg: #f6f3f5;
+  --surface: #ffffff;
+  --ink: #1d1a1c;
+  --muted: #6b6468;
+  --border: #d9d2d6;
+  --control-border: #857c81;
+  --danger: #c62828;
+  --danger-bg: #fdecea;
+  --warning: #8a5a00;
+  --warning-bg: #fff4dd;
+  --radius: 14px;
+  --tap: 48px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --accent: #ff4fae;
+    --accent-ink: #1a0010;
+    --bg: #141213;
+    --surface: #211e20;
+    --ink: #f3eff1;
+    --muted: #b0a8ad;
+    --border: #3d373a;
+    --control-border: #7a7176;
+    --danger: #ff6b6b;
+    --danger-bg: #3a1717;
+    --warning: #ffc94d;
+    --warning-bg: #3a2c0d;
+    color-scheme: dark;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  /* Un champ qui reçoit le focus ne doit pas finir sous les barres fixes. */
+  scroll-padding-top: 64px;
+  scroll-padding-bottom: calc(80px + env(safe-area-inset-bottom));
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 17px/1.45 system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', 'Noto Sans JP', sans-serif;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: 1.2;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--accent);
+  color: var(--accent-ink);
+  padding: 12px 16px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+}
+
+.topbar h1 {
+  font-size: 1.15rem;
+}
+
+main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 12px 12px calc(88px + env(safe-area-inset-bottom));
+}
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card h2 {
+  font-size: 1.2rem;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  margin: 12px 4px 0;
+}
+
+/* ------------------------------------------------------------ Formulaires */
+.form {
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.field > label,
+.field > legend {
+  font-weight: 600;
+  padding: 0;
+  margin-bottom: 6px;
+}
+
+.hint {
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.input {
+  width: 100%;
+  min-height: var(--tap);
+  font: inherit;
+  color: inherit;
+  background: var(--bg);
+  border: 2px solid var(--control-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+textarea.input {
+  resize: vertical;
+  white-space: pre-wrap;
+}
+
+select.input {
+  appearance: auto;
+}
+
+/* ------------------------------------------------------------ Boutons */
+.btn {
+  min-height: var(--tap);
+  min-width: var(--tap);
+  padding: 10px 16px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--surface);
+  border: 2px solid var(--control-border);
+  border-radius: 12px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.btn--danger {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: transparent;
+}
+
+.btn--block {
+  width: 100%;
+  min-height: 56px;
+  font-size: 1.05rem;
+}
+
+.btn--icon {
+  padding: 0;
+  font-size: 1.3rem;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+}
+
+.row > .btn {
+  flex: 1;
+}
+
+/* ------------------------------------------------------------ Puces */
+.chips,
+.segmented {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: var(--tap);
+  padding: 8px 16px;
+  font: inherit;
+  color: var(--ink);
+  text-align: start;
+  overflow-wrap: anywhere;
+  background: var(--bg);
+  border: 2px solid var(--control-border);
+  border-radius: 24px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.chip:focus-visible,
+.chip:focus-within:has(:focus-visible) {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.chip--on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------ Sorties */
+.output {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.output--over {
+  border-color: var(--danger);
+}
+
+.output__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.output__header h3 {
+  font-size: 1rem;
+}
+
+.output__text {
+  margin: 0;
+  font: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.output__placeholder {
+  margin: 0;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.counter {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.counter--over {
+  color: var(--danger);
+}
+
+.field > .counter {
+  align-self: flex-end;
+  font-size: 0.95rem;
+}
+
+.counter__label {
+  font-weight: 400;
+}
+
+.alert[hidden] {
+  display: none;
+}
+
+/* ------------------------------------------------------------ Messages */
+.alert {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.notice {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.warnings {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.warning {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--warning-bg);
+  color: var(--warning);
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------------ Réglages */
+.group-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.group-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.group-item__text {
+  display: flex;
+  flex-direction: column;
+  overflow-wrap: anywhere;
+}
+
+.group-item__prefix {
+  color: var(--muted);
+}
+
+.group-item__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.group-item__actions .btn:not(.btn--icon) {
+  /* Ne rétrécit jamais sous la largeur du texte : passe à la ligne si besoin. */
+  flex: 1 0 auto;
+  padding-inline: 12px;
+}
+
+/* ------------------------------------------------------------ Barre du bas */
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.tab {
+  flex: 1;
+  min-height: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.tab__icon {
+  font-size: 1.4rem;
+}
+
+.tab--on {
+  color: var(--accent);
+}
+
+/* L'éditeur remonte sous la barre du haut (qui est collante). */
+.editor {
+  scroll-margin-top: 72px;
+}
