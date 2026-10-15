@@ -1,4 +1,5 @@
 import { isBlank } from '../core/blocks';
+import { hashtagWarnings, parseHashtagList } from '../core/hashtags';
 import { INSTA_HASHTAGS_MAX, type LinkMentionKind } from '../core/model';
 import {
   clearDraft,
@@ -12,12 +13,14 @@ import {
   selectGroup,
   setLinkMention,
   toggleInstaHashtag,
+  toggleXHashtag,
   tweet1,
   tweet1Count,
   tweet2,
   tweet2Count,
   updateDraft,
 } from '../state/app';
+import { resetStory } from '../state/story';
 import { Counter } from './Counter';
 import { fr } from './fr';
 import { OutputCard } from './OutputCard';
@@ -38,9 +41,14 @@ export function InputScreen() {
   // Une réserve peut contenir des doublons (simple avertissement dans les
   // réglages) : on n'affiche chaque hashtag qu'une fois.
   const reserve = group ? [...new Set(group.instaHashtags)] : [];
+  const groupXHashtags = group ? [...new Set(group.xHashtags)] : [];
+  const customMissingHash = hashtagWarnings(parseHashtagList(d.xHashtagsCustom)).missingHash;
 
   function onClear() {
-    if (window.confirm(fr.input.clearConfirm)) clearDraft();
+    if (window.confirm(fr.input.clearConfirm)) {
+      clearDraft();
+      resetStory();
+    }
   }
 
   return (
@@ -94,6 +102,52 @@ export function InputScreen() {
           />
           {tweet2.value !== null && <Counter count={tweet2Count.value} label={fr.outputs.tweet(2)} />}
         </div>
+
+        {group && (
+          <fieldset class="field">
+            <legend>
+              {fr.input.xHashtags} <span class="hint">({fr.input.xHashtagsHint})</span>
+            </legend>
+            {groupXHashtags.length === 0 ? (
+              <p class="hint">{fr.input.xHashtagsEmpty}</p>
+            ) : (
+              <div class="chips">
+                {groupXHashtags.map((tag) => {
+                  const on = !d.xHashtagsOff.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      aria-pressed={on}
+                      class={`chip${on ? ' chip--on' : ''}`}
+                      onClick={() => toggleXHashtag(tag)}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            <label for="x-hashtags-custom" class="sublabel">
+              {fr.input.xHashtagsCustom} <span class="hint">({fr.input.xHashtagsCustomHint})</span>
+            </label>
+            <input
+              id="x-hashtags-custom"
+              class="input"
+              type="text"
+              placeholder="#exemple"
+              value={d.xHashtagsCustom}
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="off"
+              spellcheck={false}
+              onInput={(e) => updateDraft({ xHashtagsCustom: (e.currentTarget as HTMLInputElement).value })}
+            />
+            {customMissingHash.length > 0 && (
+              <p class="warning">{fr.settings.missingHash(customMissingHash)}</p>
+            )}
+          </fieldset>
+        )}
 
         <div class="field">
           <label for="insta-extra">

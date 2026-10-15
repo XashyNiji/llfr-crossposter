@@ -5,7 +5,7 @@ et l'app prépare :
 
 - le ou les **tweets** (avec le compteur officiel de X) ;
 - la **légende du post Instagram** ;
-- une **image de story** sur nos templates (étape b, en cours).
+- une **image de story** (PNG 1440 × 2560) sur nos templates.
 
 C'est une PWA : elle s'utilise dans Chrome sur Android et pourra s'installer comme
 une app. Tout se passe dans le téléphone : pas de serveur, pas de compte, pas d'IA,
@@ -21,9 +21,25 @@ rien de payant.
 | Étape | Contenu | État |
 |---|---|---|
 | (a) | Saisie, sorties X et Insta, réglages des groupes et du lien | ✅ |
-| (b) | Éditeur de story (templates, image, zones de texte, export PNG) | à venir |
-| (c) | Hors-ligne et installation Android | à venir |
-| (d) | Export / import de la config | à venir |
+| (b) | Éditeur de story (templates, image, zones de texte, export PNG) | ✅ |
+| (c) | Hors-ligne et installation Android | ✅ |
+| (d) | Export / import de la config | ✅ |
+
+**Adresse de l'app : https://xashyniji.github.io/llfr-crossposter/**
+
+## Installer l'app sur Android
+
+1. Ouvre **https://xashyniji.github.io/llfr-crossposter/** dans **Chrome**
+   (avec une connexion internet, la première fois).
+2. Menu **⋮** → **Installer l'application** (ou « Ajouter à l'écran d'accueil »).
+3. L'icône « LLFR » apparaît sur l'écran d'accueil. L'app s'ouvre en plein écran
+   et fonctionne ensuite **hors connexion** (le message « L'app fonctionne
+   maintenant hors connexion » s'affiche quand tout est prêt).
+4. Quand une nouvelle version est publiée, un bandeau « Nouvelle version
+   disponible » propose de **Recharger** (rien n'est rechargé sans ton accord).
+
+Pour le staff : installe l'app, puis **Réglages → Sauvegarde et partage →
+Importer une config** avec le fichier que je t'envoie (voir ci-dessous).
 
 ## Utilisation
 
@@ -36,15 +52,88 @@ rien de payant.
 3. La saisie en cours est gardée dans le téléphone : si Android ferme l'app pendant
    que tu colles le tweet dans X, tu la retrouves en revenant. Il n'y a pas
    d'historique, seulement la saisie du moment.
-4. **Tout effacer** vide les textes, la mention et les hashtags cochés (et la
+4. **Hashtags X** : les hashtags X du groupe sont cochés par défaut. Décoche-les
+   pour gagner des caractères, ou ajoute des hashtags personnalisés pour ce tweet
+   (champ « Autres hashtags X »). La légende Insta n'est pas concernée.
+5. **Tout effacer** vide les textes, la mention et les hashtags cochés (et la
    saisie gardée). Le groupe choisi est conservé.
-5. **Réglages** : ajoute, modifie, supprime ou réordonne les groupes (↑ / ↓), et
+6. **Réglages** : ajoute, modifie, supprime ou réordonne les groupes (↑ / ↓), et
    change les formulations « Lien en bio » / « Lien en story ».
+
+### Story Instagram
+
+1. Dans **Réglages → Templates de story**, importe tes PNG (1440 × 2560). Ils
+   restent dans le téléphone. Un template d'une autre taille est accepté, mais
+   recadré pour remplir le format.
+2. Dans l'onglet **Story**, choisis le template en haut (le dernier utilisé est
+   retenu), puis **Importer le visuel** depuis la galerie. Le visuel est centré
+   et tient entier dans la story.
+3. **Gestes** : un toucher **sélectionne** (une zone de texte, ou le visuel) ;
+   on ne déplace que l'élément déjà sélectionné. Ailleurs, glisser verticalement
+   fait défiler la page. « Terminé » (ou toucher un endroit vide) désélectionne.
+   L'aperçu reste en haut de l'écran pendant qu'on fait défiler les réglages.
+   **Le visuel** sélectionné se glisse au doigt et se redimensionne en pinçant à
+   deux doigts ou avec le curseur « Taille du visuel » (proportions conservées).
+4. **Les zones de texte** : la zone 1 reprend le texte principal + le texte du
+   tweet 2 (sans préfixe ni hashtags) et suit la saisie tant que tu ne modifies
+   pas son texte dans l'éditeur. **Ajouter une zone de texte** crée une zone vide.
+   Touche une zone pour la régler : texte, police, taille, couleur, alignement,
+   interlignage, largeur, hauteur, fond (aucun, bloc, ou par ligne façon Insta,
+   avec couleur, opacité, coins arrondis et marge interne). Glisse-la au doigt ;
+   les poignées rondes changent sa largeur et sa hauteur.
+5. Des repères bleus apparaissent quand le texte d'une zone ou le visuel est
+   centré horizontalement ou verticalement (aimantation).
+6. Si le texte ne tient pas, la zone a un **contour rouge** et l'alerte « Texte
+   trop long » s'affiche : réduis la taille, agrandis la zone ou utilise une
+   deuxième zone. La police n'est jamais réduite automatiquement.
+7. **Créer l'image** produit le PNG en pleine résolution, puis **Partager**
+   (pour l'envoyer directement dans Instagram) ou **Télécharger**. Si le partage
+   de fichiers n'est pas possible, l'image est téléchargée.
+8. **Réinitialiser la mise en page** revient à la zone 1 seule (avec le texte de
+   la saisie), visuel recentré. Rien n'est mémorisé d'une story à l'autre, sauf
+   le template choisi.
+
+Les contours, poignées et repères ne sont jamais dans l'image exportée.
+
+#### Polices
+
+| Style Instagram | Police libre utilisée |
+|---|---|
+| Classic | Inter |
+| Modern | Montserrat |
+| Neon | Neonderthaw (avec halo lumineux) |
+| Typewriter | Courier Prime |
+| Strong | Anton |
+| Elegant | Playfair Display |
+| Signature | Dancing Script |
+| Bubble | Fredoka |
+
+Toutes gèrent les accents français. Le japonais est affiché avec **Noto Sans
+JP** (normal ou gras selon le style), en secours de chaque police : jamais de
+carrés. Les emojis utilisent la police emoji du téléphone (leur dessin peut donc
+varier d'un téléphone à l'autre). Toutes les polices sont incluses dans l'app
+(aucun CDN) et sous licence libre OFL.
+
+### Sauvegarde et partage de la config
+
+**Réglages → Sauvegarde et partage** :
+
+- **Exporter la config** télécharge un fichier `llfr-config-AAAAMMJJ.json` avec
+  tous les groupes, les formulations de lien et les templates (PNG inclus).
+  Garde-le comme sauvegarde, et envoie-le au staff (Discord, WhatsApp, Drive…).
+- **Importer une config** lit ce fichier, le vérifie entièrement, affiche un
+  récapitulatif et, après confirmation, **remplace** tous les réglages et
+  templates du téléphone. Un fichier invalide ne change rien.
+
+Le navigateur peut effacer les données d'un site peu utilisé : installe l'app
+(la protection est alors généralement accordée, voir Réglages → Stockage) et
+exporte régulièrement ta config.
 
 ### Règles de mise en forme
 
 - **Tweet 1** : préfixe, ligne vide, texte principal, ligne vide, hashtags X
-  séparés par une espace.
+  choisis (ceux du groupe restés cochés, puis les personnalisés) séparés par une
+  espace. Sans hashtag, le tweet s'arrête après le texte.
 - **Tweet 2** : le texte seul.
 - **Légende Insta** : préfixe, texte principal, tweet 2, complément Insta, mention
   du lien, hashtags cochés (dans l'ordre de la réserve), avec une ligne vide entre
@@ -97,7 +186,11 @@ npm run dev        # lance l'app en local : ouvre l'adresse affichée
 npm test           # lance tous les tests
 npm run typecheck  # vérifie les types TypeScript
 npm run build      # construit la version publiée dans dist/
+npm run test:e2e   # teste l'export de la story dans Chromium (après npm run build)
 ```
+
+Pour `test:e2e` sur ta machine, installe d'abord le navigateur de test :
+`npx playwright install chromium`.
 
 ### Organisation du code
 
@@ -111,13 +204,28 @@ src/
     count.ts      compteurs (seul fichier qui utilise twitter-text)
     hashtags.ts   découpage, avertissements, limite de 5
     config.ts     validation de la config, opérations sur les groupes
+    backup.ts     format du fichier de sauvegarde (export / import)
   storage/   IndexedDB (base « llfr-crossposter »), navigator.storage.persist(),
              saisie en cours (localStorage)
+  story/     éditeur de story, sans interface
+    layout.ts     retour à la ligne (japonais, insécables, emojis), testé
+    scene.ts      modèle de la story (zones, visuel), géométrie, testé
+    fonts.ts      liste des polices et chargement (document.fonts.load)
+    render.ts     dessin sur canvas, identique pour l'aperçu et l'export
+    images.ts     décodage des images, miniatures
+  storage/   IndexedDB (base « llfr-crossposter ») : réglages, templates ;
+             navigator.storage.persist() ; saisie en cours (localStorage)
   state/     état de l'app (signaux Preact) et sorties calculées en direct
+    app.ts        saisie, réglages, sorties X et Insta
+    story.ts      éditeur de story (scène, templates, export)
   ui/        écrans et composants Preact
     fr.ts         TOUS les textes de l'interface (à modifier ici)
+    story/        écran de l'éditeur (chargé seulement à l'ouverture de l'onglet)
   styles.css  couleurs (variables en haut du fichier) et mise en page
-test/        tests (Vitest)
+test/        tests unitaires (Vitest)
+e2e/         tests dans un vrai navigateur (Playwright) : export de la story,
+             hors connexion
+public/      icônes de l'app, LICENSES.txt (licences des polices et bibliothèques)
 ```
 
 ### Recettes
@@ -130,6 +238,12 @@ test/        tests (Vitest)
   lancement.
 - **Changer une limite** (280, 2 200, 5 hashtags) : `src/core/model.ts`, puis
   adapter les tests.
+- **Changer le style par défaut des zones de texte** (taille, couleur, fond…) :
+  `DEFAULT_STYLE` dans `src/story/scene.ts`.
+- **Ajouter ou changer une police de story** : installe-la depuis npm
+  (`npm install --save-exact @fontsource/<nom>`), puis ajoute une entrée dans
+  `STORY_FONTS` de `src/story/fonts.ts` (fichiers woff2 « latin » et
+  « latin-ext »). Vérifie qu'elle gère les accents français.
 
 ### Choix techniques
 
@@ -138,21 +252,27 @@ test/        tests (Vitest)
   reste confortable pour des formulaires avec des résultats calculés en direct ;
   les sorties sont de simples `computed()` dans `src/state/app.ts`.
 - **idb** pour IndexedDB.
-- **Vitest** (+ happy-dom et Testing Library) pour les tests.
+- **Canvas 2D** pour la story : `Intl.Segmenter` découpe le texte (y compris le
+  japonais, qui n'a pas d'espaces) ; les polices sont chargées avec
+  `document.fonts.load` avant chaque dessin.
+- **vite-plugin-pwa** (Workbox) pour le hors-ligne : toutes les ressources,
+  polices comprises, sont mises en cache à la première visite.
+- **Vitest** (+ happy-dom et Testing Library) pour les tests unitaires,
+  **Playwright** pour le test de l'export dans Chromium.
 - Les versions des dépendances sont **figées** dans `package.json` pour éviter les
   surprises.
 
 ### Publication
 
 Chaque push sur `main` lance le workflow `.github/workflows/deploy.yml` : il
-installe les dépendances, vérifie les types, lance les tests, construit l'app et
-la publie sur GitHub Pages. Sur une pull request, il ne fait que vérifier (pas de
+installe les dépendances, vérifie les types, lance les tests unitaires, construit
+l'app, teste l'export de la story dans Chromium et la publie sur GitHub Pages. Sur une pull request, il ne fait que vérifier (pas de
 publication). Le suivi se fait dans l'onglet **Actions** du dépôt.
 
 Réglage à faire une seule fois : **Settings → Pages → Source : GitHub Actions**.
 
-Le chemin de publication (`/<nom-du-dépôt>/`) est déduit automatiquement : renommer
-le dépôt ne demande aucune modification du code. Attention : changer d'adresse
+L'app utilise des adresses relatives : elle fonctionne quel que soit le nom du
+dépôt, sans modification du code. Attention : changer d'adresse
 après que le staff a installé l'app crée une nouvelle app (il faudra la
 réinstaller et réimporter la config).
 

@@ -24,6 +24,10 @@ export function parseDraft(value: unknown): Draft | null {
   if (!str(d.groupId) || !str(d.mainText) || !str(d.tweet2) || !str(d.instaExtra)) return null;
   if (!LINK_KINDS.includes(d.linkMention as LinkMentionKind)) return null;
   if (!Array.isArray(d.instaHashtags) || !d.instaHashtags.every(str)) return null;
+  // Champs ajoutés après la première version : absents = valeurs par défaut.
+  const xHashtagsOff = d.xHashtagsOff ?? [];
+  const xHashtagsCustom = d.xHashtagsCustom ?? '';
+  if (!Array.isArray(xHashtagsOff) || !xHashtagsOff.every(str) || !str(xHashtagsCustom)) return null;
   return {
     groupId: d.groupId,
     mainText: d.mainText,
@@ -31,6 +35,8 @@ export function parseDraft(value: unknown): Draft | null {
     instaExtra: d.instaExtra,
     linkMention: d.linkMention as LinkMentionKind,
     instaHashtags: [...d.instaHashtags],
+    xHashtagsOff: [...xHashtagsOff],
+    xHashtagsCustom,
   };
 }
 

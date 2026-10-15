@@ -1,15 +1,28 @@
 // Mise en forme des sorties X et Instagram (fonctions pures, testées).
 import { isBlank, joinBlocks } from './blocks';
-import { orderedSelection } from './hashtags';
+import { orderedSelection, parseHashtagList } from './hashtags';
 import type { Draft, Group, LinkMentions } from './model';
 
 /**
+ * Hashtags X à utiliser pour ce tweet : ceux du groupe restés cochés (dans
+ * l'ordre du groupe), puis les hashtags personnalisés, sans doublon.
+ */
+export function selectedXHashtags(group: Group, draft: Pick<Draft, 'xHashtagsOff' | 'xHashtagsCustom'>): string[] {
+  const off = new Set(draft.xHashtagsOff);
+  const out: string[] = [];
+  for (const tag of [...group.xHashtags.filter((t) => !off.has(t)), ...parseHashtagList(draft.xHashtagsCustom)]) {
+    if (!out.includes(tag)) out.push(tag);
+  }
+  return out;
+}
+
+/**
  * Tweet 1 : préfixe, ligne vide, texte principal, ligne vide, hashtags X
- * séparés par une espace. Un bloc vide (ex. groupe sans hashtags) est omis
+ * séparés par une espace. Un bloc vide (ex. aucun hashtag choisi) est omis
  * sans laisser de ligne vide en trop.
  */
-export function buildTweet1(group: Group, mainText: string): string {
-  return joinBlocks([group.prefix, mainText, group.xHashtags.join(' ')]);
+export function buildTweet1(group: Group, mainText: string, xHashtags: readonly string[] = group.xHashtags): string {
+  return joinBlocks([group.prefix, mainText, xHashtags.join(' ')]);
 }
 
 /** Tweet 2 : le texte seul, sans préfixe ni hashtags. Null s'il est vide. */
@@ -20,7 +33,7 @@ export function buildTweet2(tweet2: string): string | null {
 /** Tous les tweets à publier, dans l'ordre. Vide si le texte principal manque. */
 export function buildTweets(draft: Draft, group: Group): string[] {
   if (isBlank(draft.mainText)) return [];
-  const tweets = [buildTweet1(group, draft.mainText)];
+  const tweets = [buildTweet1(group, draft.mainText, selectedXHashtags(group, draft))];
   const t2 = buildTweet2(draft.tweet2);
   if (t2 !== null) tweets.push(t2);
   return tweets;

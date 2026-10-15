@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import 'fake-indexeddb/auto';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/preact';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/preact';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defaultConfig } from '../src/core/defaults';
 import { config, draft, emptyDraft, hashtagLimitHit, setConfig } from '../src/state/app';
@@ -20,6 +20,10 @@ function go(hash: string) {
 function stubConfirm(answer: boolean) {
   Object.defineProperty(window, 'confirm', { value: vi.fn(() => answer), configurable: true, writable: true });
 }
+
+const instaChip = (name: string) =>
+  within(screen.getByRole('group', { name: /Hashtags Insta/ })).getByRole('button', { name });
+const xChip = (name: string) => within(screen.getByRole('group', { name: /Hashtags X/ })).getByRole('button', { name });
 
 const outputTexts = () => screen.queryAllByTestId('output-text').map((el) => el.textContent);
 
@@ -90,17 +94,17 @@ describe('écran de saisie', () => {
     });
     render(<App />);
     fireEvent.input(screen.getByLabelText(/Texte principal/), { target: { value: 'Texte' } });
-    for (const t of ['#a', '#b', '#c', '#d', '#e']) fireEvent.click(screen.getByRole('button', { name: t }));
+    for (const t of ['#a', '#b', '#c', '#d', '#e']) fireEvent.click(instaChip(t));
     expect(screen.queryByText(/5 hashtags maximum/)).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: '#f' }));
+    fireEvent.click(instaChip('#f'));
     await screen.findByText(/5 hashtags maximum/);
-    expect(screen.getByRole('button', { name: '#f' }).getAttribute('aria-pressed')).toBe('false');
+    expect(instaChip('#f').getAttribute('aria-pressed')).toBe('false');
     expect(outputTexts().at(-1)).toBe('【🌺Love Live🌺】\n\nTexte\n\n#a #b #c #d #e');
 
     // Décocher libère une place et efface le message.
-    fireEvent.click(screen.getByRole('button', { name: '#b' }));
-    fireEvent.click(screen.getByRole('button', { name: '#f' }));
+    fireEvent.click(instaChip('#b'));
+    fireEvent.click(instaChip('#f'));
     await waitFor(() => expect(screen.queryByText(/5 hashtags maximum/)).toBeNull());
     expect(outputTexts().at(-1)).toBe('【🌺Love Live🌺】\n\nTexte\n\n#a #c #d #e #f');
   });
@@ -108,7 +112,7 @@ describe('écran de saisie', () => {
   it('changer de groupe décoche les hashtags', async () => {
     render(<App />);
     fireEvent.input(screen.getByLabelText(/Texte principal/), { target: { value: 'T' } });
-    fireEvent.click(screen.getByRole('button', { name: '#lovelive' }));
+    fireEvent.click(instaChip('#lovelive'));
     expect(draft.value.instaHashtags).toEqual(['#lovelive']);
     fireEvent.change(screen.getByLabelText('Groupe'), { target: { value: 'aqours' } });
     expect(draft.value.instaHashtags).toEqual([]);
@@ -183,6 +187,36 @@ describe('réglages', () => {
     render(<App />);
     fireEvent.input(screen.getByLabelText('Formulation « lien en bio »'), { target: { value: '🔗 Lien en bio' } });
     expect(config.value.linkMentions.bio).toBe('🔗 Lien en bio');
+  });
+});
+
+describe('hashtags X', () => {
+  it('décocher puis ajouter des hashtags personnalisés met à jour le tweet et le compteur', async () => {
+    render(<App />);
+    fireEvent.change(screen.getByLabelText('Groupe'), { target: { value: 'aqours' } });
+    fireEvent.input(screen.getByLabelText(/Texte principal/), { target: { value: 'Texte' } });
+    await waitFor(() => expect(outputTexts()[0]).toBe('【🌅Aqours🌅】\n\nTexte\n\n#lovelive #Aqours'));
+
+    fireEvent.click(xChip('#lovelive'));
+    fireEvent.click(xChip('#Aqours'));
+    expect(xChip('#Aqours').getAttribute('aria-pressed')).toBe('false');
+    await waitFor(() => expect(outputTexts()[0]).toBe('【🌅Aqours🌅】\n\nTexte'));
+
+    fireEvent.input(screen.getByLabelText(/Autres hashtags X/), { target: { value: '#Aqours_10th lovelive' } });
+    await waitFor(() => expect(outputTexts()[0]).toBe('【🌅Aqours🌅】\n\nTexte\n\n#Aqours_10th lovelive'));
+    expect(screen.getByText(/^Sans .*: lovelive$/)).toBeTruthy();
+
+    // La légende Insta ne bouge pas.
+    expect(outputTexts().at(-1)).toBe('【🌅Aqours🌅】\n\nTexte');
+  });
+
+  it('changer de groupe recoche tous les hashtags X et garde les personnalisés', async () => {
+    render(<App />);
+    fireEvent.click(xChip('#lovelive'));
+    fireEvent.input(screen.getByLabelText(/Autres hashtags X/), { target: { value: '#perso' } });
+    fireEvent.change(screen.getByLabelText('Groupe'), { target: { value: 'aqours' } });
+    expect(draft.value.xHashtagsOff).toEqual([]);
+    expect(draft.value.xHashtagsCustom).toBe('#perso');
   });
 });
 

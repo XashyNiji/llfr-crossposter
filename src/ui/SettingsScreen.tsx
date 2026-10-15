@@ -4,6 +4,21 @@ import { formatHashtagList, hashtagWarnings, parseHashtagList } from '../core/ha
 import type { Group } from '../core/model';
 import { isBlank } from '../core/blocks';
 import { config, deleteGroup, moveGroup, persistence, saveError, saveGroup, setLinkMentions } from '../state/app';
+import {
+  importTemplates,
+  loadTemplates,
+  removeTemplate,
+  renameTemplateById,
+  templates,
+  templatesLoaded,
+  type TemplateView,
+} from '../state/story';
+import { isStoryFormat } from '../story/images';
+import { parseBackup } from '../core/backup';
+import { buildBackup, restoreTemplates } from '../storage/backup';
+import { setConfig } from '../state/app';
+import { reloadTemplatesAfterImport } from '../state/story';
+import { downloadBlob } from './story/share';
 import { fr } from './fr';
 
 // Attributs pour que le clavier (Gboard…) ne « corrige » pas les préfixes et
@@ -215,6 +230,155 @@ function LinkSection() {
   );
 }
 
+function TemplateItem({ t }: { t: TemplateView }) {
+  async function onRename(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    // Un nom vide n'est pas enregistré : on remet l'ancien.
+    if (isBlank(input.value)) input.value = t.name;
+    else if (input.value !== t.name) await renameTemplateById(t.id, input.value);
+  }
+  async function onDelete() {
+    if (window.confirm(fr.settings.templateDeleteConfirm(t.name))) await removeTemplate(t.id);
+  }
+  return (
+    <li class="template-item">
+      <img class="template-item__thumb" src={t.thumbUrl} alt="" width={54} height={96} />
+      <div class="template-item__body">
+        <input
+          class="input"
+          type="text"
+          defaultValue={t.name}
+          aria-label={fr.settings.templateName(t.name)}
+          onChange={onRename}
+          {...RAW_INPUT}
+        />
+        {!isStoryFormat(t.width, t.height) && <p class="warning">{fr.settings.templateWrongSize(t.width, t.height)}</p>}
+        <button type="button" class="btn btn--danger" onClick={onDelete}>
+          {fr.settings.delete}
+        </button>
+      </div>
+    </li>
+  );
+}
+
+function TemplatesSection() {
+  const [busy, setBusy] = useState(false);
+  const [messages, setMessages] = useState<string[]>([]);
+  useEffect(() => {
+    if (!templatesLoaded.value) void loadTemplates();
+  }, []);
+
+  async function onFiles(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    const files = [...(input.files ?? [])];
+    input.value = '';
+    if (!files.length) return;
+    setBusy(true);
+    const report = await importTemplates(files);
+    setBusy(false);
+    setMessages([
+      ...(report.imported.length ? [fr.settings.templatesImported(report.imported.length)] : []),
+      ...report.errors,
+    ]);
+  }
+
+  return (
+    <section class="card" aria-labelledby="templates-title">
+      <h2 id="templates-title">{fr.settings.templatesTitle}</h2>
+      <p class="hint">{fr.settings.templatesHint}</p>
+      {templates.value.length === 0 ? (
+        <p>{fr.settings.templatesEmpty}</p>
+      ) : (
+        <ul class="template-list">
+          {templates.value.map((t) => (
+            <TemplateItem key={`${t.id}:${t.name}`} t={t} />
+          ))}
+        </ul>
+      )}
+      {messages.map((m) => (
+        <p key={m} class="notice" role="status">
+          {m}
+        </p>
+      ))}
+      <label class={`btn btn--primary btn--block file-button${busy ? ' is-busy' : ''}`}>
+        <input type="file" accept="image/png" multiple class="visually-hidden" onChange={onFiles} disabled={busy} />
+        {busy ? fr.settings.templatesImporting : fr.settings.templatesImport}
+      </label>
+    </section>
+  );
+}
+
+function BackupSection() {
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function onExport() {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const d = new Date();
+      const p = (n: number) => String(n).padStart(2, '0');
+      downloadBlob(await buildBackup(config.value, d), `llfr-config-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}.json`);
+    } catch (e) {
+      setMessage(fr.backup.failed(e instanceof Error ? e.message : String(e)));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onImport(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    setMessage(null);
+    let raw: unknown;
+    try {
+      raw = JSON.parse(await file.text());
+    } catch {
+      setMessage(fr.backup.failed('fichier JSON illisible.'));
+      return;
+    }
+    const parsed = parseBackup(raw);
+    if (!parsed.ok) {
+      setMessage(fr.backup.failed(parsed.error));
+      return;
+    }
+    const { backup } = parsed;
+    if (!window.confirm(fr.backup.confirm(backup.config.groups.length, backup.templates.length))) return;
+    setBusy(true);
+    try {
+      await restoreTemplates(backup);
+      await setConfig(backup.config);
+      await reloadTemplatesAfterImport();
+      setMessage(fr.backup.done);
+    } catch (err) {
+      setMessage(fr.backup.failed(err instanceof Error ? err.message : String(err)));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section class="card form" aria-labelledby="backup-title">
+      <h2 id="backup-title">{fr.backup.title}</h2>
+      <p class="hint">{fr.backup.hint}</p>
+      <button type="button" class="btn btn--primary btn--block" onClick={onExport} disabled={busy}>
+        {busy ? fr.backup.exporting : fr.backup.export}
+      </button>
+      <label class={`btn btn--block file-button${busy ? ' is-busy' : ''}`}>
+        <input type="file" accept="application/json,.json" class="visually-hidden" onChange={onImport} disabled={busy} />
+        {fr.backup.import}
+      </label>
+      {message && (
+        <p class="notice" role="status">
+          {message}
+        </p>
+      )}
+    </section>
+  );
+}
+
 function StorageSection() {
   const status = persistence.value;
   if (status === null) return null;
@@ -242,7 +406,14 @@ export function SettingsScreen() {
       )}
       <GroupsSection />
       <LinkSection />
+      <TemplatesSection />
+      <BackupSection />
       <StorageSection />
+      <p class="hint licenses-link">
+        <a class="link" href="./LICENSES.txt" target="_blank" rel="noopener">
+          {fr.licenses}
+        </a>
+      </p>
     </div>
   );
 }

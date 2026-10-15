@@ -8,7 +8,9 @@ import {
   buildTweet1,
   buildTweet2,
   buildTweets,
+  selectedXHashtags,
 } from '../src/core/outputs';
+import { countTweet } from '../src/core/count';
 
 const config = defaultConfig();
 const groupById = (id: string): Group => config.groups.find((g) => g.id === id)!;
@@ -24,6 +26,8 @@ function draft(patch: Partial<Draft> = {}): Draft {
     instaExtra: '',
     linkMention: 'none',
     instaHashtags: [],
+    xHashtagsOff: [],
+    xHashtagsCustom: '',
     ...patch,
   };
 }
@@ -211,5 +215,50 @@ describe('fidélité des caractères (aucune normalisation)', () => {
       cps([`P${seq}`, text, text, text, `#i${seq}`].join('\n\n')),
     );
     expect(cps(buildStoryText(d))).toEqual(cps(`${text}\n\n${text}`));
+  });
+});
+
+describe('choix des hashtags X', () => {
+  const bluebird = groupById('bluebird');
+  const T1 = (patch: Partial<Draft>) => buildTweets(draft({ mainText: 'Texte', ...patch }), bluebird)[0]!;
+
+  it('par défaut : tous les hashtags X du groupe', () => {
+    expect(T1({})).toBe('【🐦BLUEBIRD🐦】\n\nTexte\n\n#lovelive #イキヅライブ #いきづらい部');
+  });
+
+  it('hashtags décochés retirés, ordre du groupe conservé', () => {
+    expect(T1({ xHashtagsOff: ['#イキヅライブ'] })).toBe('【🐦BLUEBIRD🐦】\n\nTexte\n\n#lovelive #いきづらい部');
+  });
+
+  it('aucun hashtag : le tweet s’arrête après le texte, sans ligne vide en trop', () => {
+    const t = T1({ xHashtagsOff: [...bluebird.xHashtags] });
+    expect(t).toBe('【🐦BLUEBIRD🐦】\n\nTexte');
+    expect(countTweet(t).length).toBe(16 + 2 + 5);
+  });
+
+  it('hashtags personnalisés ajoutés après ceux du groupe, tels quels', () => {
+    expect(T1({ xHashtagsOff: ['#イキヅライブ', '#いきづらい部'], xHashtagsCustom: ' #BLUEBIRD_1stLive\u{3000}#\u{3BC}\u{2BC}s ' })).toBe(
+      '【🐦BLUEBIRD🐦】\n\nTexte\n\n#lovelive #BLUEBIRD_1stLive #\u{3BC}\u{2BC}s',
+    );
+  });
+
+  it('uniquement des personnalisés', () => {
+    expect(T1({ xHashtagsOff: [...bluebird.xHashtags], xHashtagsCustom: '#perso' })).toBe(
+      '【🐦BLUEBIRD🐦】\n\nTexte\n\n#perso',
+    );
+  });
+
+  it('doublon entre groupe et personnalisés : une seule fois', () => {
+    expect(selectedXHashtags(bluebird, { xHashtagsOff: [], xHashtagsCustom: '#lovelive #new' })).toEqual([
+      '#lovelive',
+      '#イキヅライブ',
+      '#いきづらい部',
+      '#new',
+    ]);
+  });
+
+  it('la légende Insta n’est pas concernée', () => {
+    const c = buildInstaCaption(draft({ mainText: 'T', xHashtagsOff: ['#lovelive'], xHashtagsCustom: '#x' }), bluebird, mentions);
+    expect(c).toBe('【🐦BLUEBIRD🐦】\n\nT');
   });
 });

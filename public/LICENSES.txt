@@ -1,0 +1,15 @@
+LLFR Crossposter — licences des composants tiers
+================================================
+
+Code de l'application : licence MIT (voir le dépôt).
+
+Polices (SIL Open Font License 1.1, https://openfontlicense.org) :
+  Inter, Montserrat, Neonderthaw, Courier Prime, Anton, Playfair Display,
+  Dancing Script, Fredoka, Noto Sans JP — fichiers fournis par Fontsource.
+
+Bibliothèques :
+  preact, @preact/signals — MIT
+  idb — ISC
+  twitter-text — Apache License 2.0
+  twemoji-parser, punycode, @babel/runtime, core-js — MIT
+  workbox (service worker) — MIT

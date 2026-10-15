@@ -9,7 +9,7 @@ import { countInstaCaption, countTweet } from '../core/count';
 import { defaultConfig } from '../core/defaults';
 import { toggleHashtag } from '../core/hashtags';
 import type { Config, Draft, Group, Id, LinkMentionKind, LinkMentions } from '../core/model';
-import { buildInstaCaption, buildTweet1, buildTweet2 } from '../core/outputs';
+import { buildInstaCaption, buildTweet1, buildTweet2, selectedXHashtags } from '../core/outputs';
 import {
   loadStoredConfig,
   persistenceStatus,
@@ -20,7 +20,16 @@ import {
 import { clearSavedDraft, loadDraft, saveDraft } from '../storage/draft';
 
 export function emptyDraft(groupId: Id): Draft {
-  return { groupId, mainText: '', tweet2: '', instaExtra: '', linkMention: 'none', instaHashtags: [] };
+  return {
+    groupId,
+    mainText: '',
+    tweet2: '',
+    instaExtra: '',
+    linkMention: 'none',
+    instaHashtags: [],
+    xHashtagsOff: [],
+    xHashtagsCustom: '',
+  };
 }
 
 export const config = signal<Config>(defaultConfig());
@@ -41,7 +50,7 @@ export const mainTextMissing = computed(() => isBlank(draft.value.mainText));
 
 export const tweet1 = computed(() => {
   const g = currentGroup.value;
-  return g && !mainTextMissing.value ? buildTweet1(g, draft.value.mainText) : '';
+  return g && !mainTextMissing.value ? buildTweet1(g, draft.value.mainText, selectedXHashtags(g, draft.value)) : '';
 });
 export const tweet2 = computed(() => (mainTextMissing.value ? null : buildTweet2(draft.value.tweet2)));
 export const tweet1Count = computed(() => countTweet(tweet1.value));
@@ -55,14 +64,19 @@ export const instaCount = computed(() => countInstaCaption(instaCaption.value));
 
 // ---------------------------------------------------------------- Saisie
 
-export function updateDraft(patch: Partial<Omit<Draft, 'groupId' | 'instaHashtags'>>): void {
+export function updateDraft(
+  patch: Partial<Pick<Draft, 'mainText' | 'tweet2' | 'instaExtra' | 'linkMention' | 'xHashtagsCustom'>>,
+): void {
   draft.value = { ...draft.value, ...patch };
 }
 
-/** Change de groupe : les hashtags Insta cochés sont remis à zéro. */
+/**
+ * Change de groupe : les hashtags Insta cochés sont remis à zéro et tous les
+ * hashtags X du nouveau groupe sont recochés (les personnalisés sont gardés).
+ */
 export function selectGroup(groupId: Id): void {
   batch(() => {
-    draft.value = { ...draft.value, groupId, instaHashtags: [] };
+    draft.value = { ...draft.value, groupId, instaHashtags: [], xHashtagsOff: [] };
     hashtagLimitHit.value = false;
   });
 }
@@ -77,6 +91,15 @@ export function toggleInstaHashtag(tag: string): void {
     draft.value = { ...draft.value, instaHashtags: r.selected };
     hashtagLimitHit.value = r.blocked;
   });
+}
+
+/** Coche ou décoche un hashtag X du groupe pour ce tweet. */
+export function toggleXHashtag(tag: string): void {
+  const off = draft.value.xHashtagsOff;
+  draft.value = {
+    ...draft.value,
+    xHashtagsOff: off.includes(tag) ? off.filter((t) => t !== tag) : [...off, tag],
+  };
 }
 
 /** « Tout effacer » : vide les textes, la mention et les hashtags ; garde le groupe. */
@@ -100,6 +123,11 @@ async function persist(next: Config): Promise<void> {
   }
 }
 
+/** Demande la protection du stockage (premier enregistrement, import de template…). */
+export async function ensurePersistence(): Promise<void> {
+  persistence.value = await requestPersistence();
+}
+
 /** Remplace la configuration en mémoire en gardant la saisie cohérente. */
 function applyConfig(next: Config): void {
   batch(() => {
@@ -110,7 +138,7 @@ function applyConfig(next: Config): void {
       draft.value = { ...d, groupId: '', instaHashtags: [] };
       hashtagLimitHit.value = false;
     } else if (group.id !== d.groupId) {
-      draft.value = { ...d, groupId: group.id, instaHashtags: [] };
+      draft.value = { ...d, groupId: group.id, instaHashtags: [], xHashtagsOff: [] };
       hashtagLimitHit.value = false;
     } else {
       // Retire les hashtags cochés qui ne sont plus dans la réserve.
@@ -175,8 +203,14 @@ export async function initState(): Promise<void> {
   // Sauvegarde de la saisie en cours à chaque modification.
   effect(() => {
     const d = draft.value;
-    const empty = isBlank(d.mainText) && isBlank(d.tweet2) && isBlank(d.instaExtra) &&
-      d.linkMention === 'none' && d.instaHashtags.length === 0;
+    const empty =
+      isBlank(d.mainText) &&
+      isBlank(d.tweet2) &&
+      isBlank(d.instaExtra) &&
+      isBlank(d.xHashtagsCustom) &&
+      d.linkMention === 'none' &&
+      d.instaHashtags.length === 0 &&
+      d.xHashtagsOff.length === 0;
     if (empty) clearSavedDraft();
     else saveDraft(d);
   });
