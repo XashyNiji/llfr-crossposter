@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { emptyGroup } from '../core/config';
 import { formatHashtagList, hashtagWarnings, parseHashtagList } from '../core/hashtags';
 import type { Group } from '../core/model';
-import { config, deleteGroup, moveGroup, saveError, saveGroup, setLinkMentions } from '../state/app';
-import { persistenceStatus, type PersistenceStatus } from '../storage/db';
+import { isBlank } from '../core/blocks';
+import { config, deleteGroup, moveGroup, persistence, saveError, saveGroup, setLinkMentions } from '../state/app';
 import { fr } from './fr';
 
 // Attributs pour que le clavier (Gboard…) ne « corrige » pas les préfixes et
@@ -190,45 +190,40 @@ function GroupsSection() {
 
 function LinkSection() {
   const lm = config.value.linkMentions;
+  const fields = [
+    { kind: 'bio' as const, label: fr.settings.linkBio },
+    { kind: 'story' as const, label: fr.settings.linkStory },
+  ];
   return (
     <section class="card form" aria-labelledby="link-title">
       <h2 id="link-title">{fr.settings.linkTitle}</h2>
-      <div class="field">
-        <label for="link-bio">{fr.settings.linkBio}</label>
-        <input
-          id="link-bio"
-          class="input"
-          type="text"
-          value={lm.bio}
-          onInput={(e) => setLinkMentions({ ...lm, bio: value(e) })}
-        />
-      </div>
-      <div class="field">
-        <label for="link-story">{fr.settings.linkStory}</label>
-        <input
-          id="link-story"
-          class="input"
-          type="text"
-          value={lm.story}
-          onInput={(e) => setLinkMentions({ ...lm, story: value(e) })}
-        />
-      </div>
+      {fields.map(({ kind, label }) => (
+        <div class="field" key={kind}>
+          <label for={`link-${kind}`}>{label}</label>
+          <input
+            id={`link-${kind}`}
+            class="input"
+            type="text"
+            value={lm[kind]}
+            onInput={(e) => setLinkMentions({ ...config.value.linkMentions, [kind]: value(e) })}
+            {...RAW_INPUT}
+          />
+          {isBlank(lm[kind]) && <p class="warning">{fr.settings.linkEmptyWarning}</p>}
+        </div>
+      ))}
     </section>
   );
 }
 
 function StorageSection() {
-  const [status, setStatus] = useState<PersistenceStatus | null>(null);
-  useEffect(() => {
-    void persistenceStatus().then(setStatus);
-  }, [config.value]);
+  const status = persistence.value;
   if (status === null) return null;
-  const text =
-    status === 'granted'
-      ? fr.settings.storageGranted
-      : status === 'denied'
-        ? fr.settings.storageDenied
-        : fr.settings.storageUnsupported;
+  const text = {
+    granted: fr.settings.storageGranted,
+    prompt: fr.settings.storagePrompt,
+    denied: fr.settings.storageDenied,
+    unsupported: fr.settings.storageUnsupported,
+  }[status];
   return (
     <section class="card" aria-labelledby="storage-title">
       <h2 id="storage-title">{fr.settings.storageTitle}</h2>

@@ -46,9 +46,13 @@ describe('écran de saisie', () => {
         '【🪷Hasunosora🪷】\n\nNouveau single ! 🎉',
       ]),
     );
-    const counters = screen.getAllByTestId('counter').map((el) => el.textContent);
-    // 18 + 2 + 19 (dont 🎉 = 2) + 2 + 17
-    expect(counters[0]).toBe('58 / 280');
+    // 18 + 2 + 19 (dont 🎉 = 2) + 2 + 17 = 58 ; affiché dans la sortie ET sous le champ
+    const visible = (el: HTMLElement) => el.querySelector('[aria-hidden="true"]')!.textContent;
+    const tweet = screen.getByRole('region', { name: 'Tweet 1' });
+    expect(visible(tweet.querySelector('[data-testid="counter"]')!)).toBe('58 / 280');
+    const live = screen.getByLabelText(/Texte principal/).parentElement!.querySelector('[data-testid="counter"]')!;
+    expect(live.textContent).toContain('Tweet 1');
+    expect(visible(live as HTMLElement)).toBe('58 / 280');
     expect(screen.queryByText('Le texte principal est obligatoire.')).toBeNull();
   });
 
@@ -179,5 +183,22 @@ describe('réglages', () => {
     render(<App />);
     fireEvent.input(screen.getByLabelText('Formulation « lien en bio »'), { target: { value: '🔗 Lien en bio' } });
     expect(config.value.linkMentions.bio).toBe('🔗 Lien en bio');
+  });
+});
+
+describe('cas limites de l’affichage', () => {
+  it('formulation de lien vide : puce avec un libellé de secours', async () => {
+    config.value = { ...config.value, linkMentions: { bio: '', story: 'Lien en story' } };
+    render(<App />);
+    expect(screen.getByRole('radio', { name: 'Lien en bio (formulation vide)' })).toBeTruthy();
+  });
+
+  it('réserve avec doublons : chaque hashtag n’apparaît qu’une fois', async () => {
+    config.value = {
+      ...config.value,
+      groups: config.value.groups.map((g, i) => (i === 0 ? { ...g, instaHashtags: ['#a', '#b', '#a'] } : g)),
+    };
+    render(<App />);
+    expect(screen.getAllByRole('button', { name: '#a' })).toHaveLength(1);
   });
 });

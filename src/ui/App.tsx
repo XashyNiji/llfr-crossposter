@@ -40,7 +40,7 @@ export function App() {
         {current === 'story' && <StoryScreen />}
         {current === 'settings' && <SettingsScreen />}
       </main>
-      <nav class="tabbar" aria-label="Navigation">
+      <nav class="tabbar" aria-label={fr.nav.label}>
         {TABS.map((t) => (
           <a
             key={t.route}

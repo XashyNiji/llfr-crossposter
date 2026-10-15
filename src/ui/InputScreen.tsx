@@ -1,3 +1,4 @@
+import { isBlank } from '../core/blocks';
 import { INSTA_HASHTAGS_MAX, type LinkMentionKind } from '../core/model';
 import {
   clearDraft,
@@ -17,6 +18,7 @@ import {
   tweet2Count,
   updateDraft,
 } from '../state/app';
+import { Counter } from './Counter';
 import { fr } from './fr';
 import { OutputCard } from './OutputCard';
 
@@ -30,9 +32,12 @@ export function InputScreen() {
   const mentions = config.value.linkMentions;
   const linkOptions: { kind: LinkMentionKind; label: string }[] = [
     { kind: 'none', label: fr.input.linkNone },
-    { kind: 'bio', label: mentions.bio },
-    { kind: 'story', label: mentions.story },
+    { kind: 'bio', label: isBlank(mentions.bio) ? fr.input.linkEmpty('bio') : mentions.bio },
+    { kind: 'story', label: isBlank(mentions.story) ? fr.input.linkEmpty('story') : mentions.story },
   ];
+  // Une réserve peut contenir des doublons (simple avertissement dans les
+  // réglages) : on n'affiche chaque hashtag qu'une fois.
+  const reserve = group ? [...new Set(group.instaHashtags)] : [];
 
   function onClear() {
     if (window.confirm(fr.input.clearConfirm)) clearDraft();
@@ -70,9 +75,10 @@ export function InputScreen() {
             class="input"
             rows={6}
             value={d.mainText}
-            aria-invalid={mainTextMissing.value}
+            aria-required="true"
             onInput={(e) => updateDraft({ mainText: textValue(e) })}
           />
+          {!mainTextMissing.value && <Counter count={tweet1Count.value} label={fr.outputs.tweet(1)} />}
         </div>
 
         <div class="field">
@@ -86,6 +92,7 @@ export function InputScreen() {
             value={d.tweet2}
             onInput={(e) => updateDraft({ tweet2: textValue(e) })}
           />
+          {tweet2.value !== null && <Counter count={tweet2Count.value} label={fr.outputs.tweet(2)} />}
         </div>
 
         <div class="field">
@@ -103,18 +110,19 @@ export function InputScreen() {
 
         <fieldset class="field">
           <legend>{fr.input.linkMention}</legend>
-          <div class="segmented" role="radiogroup" aria-label={fr.input.linkMention}>
+          <div class="chips">
             {linkOptions.map((o) => (
-              <button
-                key={o.kind}
-                type="button"
-                role="radio"
-                aria-checked={d.linkMention === o.kind}
-                class={`chip${d.linkMention === o.kind ? ' chip--on' : ''}`}
-                onClick={() => setLinkMention(o.kind)}
-              >
+              <label key={o.kind} class={`chip${d.linkMention === o.kind ? ' chip--on' : ''}`}>
+                <input
+                  type="radio"
+                  name="link-mention"
+                  class="visually-hidden"
+                  value={o.kind}
+                  checked={d.linkMention === o.kind}
+                  onChange={() => setLinkMention(o.kind)}
+                />
                 {o.label}
-              </button>
+              </label>
             ))}
           </div>
         </fieldset>
@@ -125,15 +133,15 @@ export function InputScreen() {
               {fr.input.instaHashtags}{' '}
               <span class="hint">{fr.input.instaHashtagsHint(d.instaHashtags.length, INSTA_HASHTAGS_MAX)}</span>
             </legend>
-            {group.instaHashtags.length === 0 ? (
+            {reserve.length === 0 ? (
               <p class="hint">{fr.input.instaHashtagsEmpty}</p>
             ) : (
               <div class="chips">
-                {group.instaHashtags.map((tag, i) => {
+                {reserve.map((tag) => {
                   const on = d.instaHashtags.includes(tag);
                   return (
                     <button
-                      key={`${i}:${tag}`}
+                      key={tag}
                       type="button"
                       aria-pressed={on}
                       class={`chip${on ? ' chip--on' : ''}`}

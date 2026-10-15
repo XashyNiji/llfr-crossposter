@@ -8,18 +8,18 @@ export async function copyText(text: string): Promise<boolean> {
   } catch {
     // On tente la méthode de repli ci-dessous.
   }
+  // Repli : on fournit le texte directement à l'événement « copy ». (Passer par
+  // un <textarea> modifierait les fins de ligne \r\n.)
+  const onCopy = (e: ClipboardEvent) => {
+    e.clipboardData?.setData('text/plain', text);
+    e.preventDefault();
+  };
+  document.addEventListener('copy', onCopy);
   try {
-    const area = document.createElement('textarea');
-    area.value = text;
-    area.setAttribute('readonly', '');
-    area.style.position = 'fixed';
-    area.style.opacity = '0';
-    document.body.appendChild(area);
-    area.select();
-    const ok = document.execCommand('copy');
-    area.remove();
-    return ok;
+    return document.execCommand('copy');
   } catch {
     return false;
+  } finally {
+    document.removeEventListener('copy', onCopy);
   }
 }

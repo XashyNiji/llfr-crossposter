@@ -3,5 +3,6 @@ import { initState } from './state/app';
 import { App } from './ui/App';
 import './styles.css';
 
-void initState();
-render(<App />, document.getElementById('app')!);
+// On attend la lecture des réglages avant d'afficher l'app : une modification
+// faite pendant le chargement ne peut donc pas être écrasée.
+void initState().finally(() => render(<App />, document.getElementById('app')!));

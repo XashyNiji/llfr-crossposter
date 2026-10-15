@@ -33,9 +33,12 @@ rien de payant.
 2. Les sorties se mettent à jour en direct sous le formulaire. Chaque sortie a son
    compteur et son bouton **Copier**. Au-delà de la limite (280 pour X, 2 200 pour
    Instagram), le compteur passe au rouge, mais le texte reste copiable.
-3. **Tout effacer** vide les textes, la mention et les hashtags cochés. Le groupe
-   choisi est conservé.
-4. **Réglages** : ajoute, modifie, supprime ou réordonne les groupes (↑ / ↓), et
+3. La saisie en cours est gardée dans le téléphone : si Android ferme l'app pendant
+   que tu colles le tweet dans X, tu la retrouves en revenant. Il n'y a pas
+   d'historique, seulement la saisie du moment.
+4. **Tout effacer** vide les textes, la mention et les hashtags cochés (et la
+   saisie gardée). Le groupe choisi est conservé.
+5. **Réglages** : ajoute, modifie, supprime ou réordonne les groupes (↑ / ↓), et
    change les formulations « Lien en bio » / « Lien en story ».
 
 ### Règles de mise en forme
@@ -61,8 +64,11 @@ et ne corrige rien. Exemples voulus dans les données initiales :
   modificative `ʼ` (U+02BC). Avec une apostrophe ordinaire, X ne reconnaîtrait que
   `#μ`.
 
-Des tests vérifient ces caractères un par un et échouent si `.normalize(` apparaît
-dans le code.
+Pour que rien ne puisse les « corriger » en silence, `src/core/defaults.ts` écrit
+tous les caractères spéciaux sous forme de codes `\u{…}`, et les tests comparent
+chaque caractère à son code écrit en hexadécimal. D'autres tests font traverser
+des caractères sensibles (é décomposé, ヅ, µ, ﬁ…) dans toutes les sorties, et un
+test échoue si `.normalize(` apparaît dans le code.
 
 ### Compteur X
 
@@ -99,13 +105,14 @@ npm run build      # construit la version publiée dans dist/
 src/
   core/      logique pure, sans interface, entièrement testée
     model.ts      types et limites (280, 2 200, 5 hashtags)
-    defaults.ts   données initiales (9 groupes), écrites en codes \u…
+    defaults.ts   données initiales (9 groupes), écrites en codes \u{…}
     blocks.ts     assemblage des blocs séparés par une ligne vide
     outputs.ts    tweets, légende Insta, texte de la story
     count.ts      compteurs (seul fichier qui utilise twitter-text)
     hashtags.ts   découpage, avertissements, limite de 5
     config.ts     validation de la config, opérations sur les groupes
-  storage/   IndexedDB (base « llfr-crossposter ») et navigator.storage.persist()
+  storage/   IndexedDB (base « llfr-crossposter »), navigator.storage.persist(),
+             saisie en cours (localStorage)
   state/     état de l'app (signaux Preact) et sorties calculées en direct
   ui/        écrans et composants Preact
     fr.ts         TOUS les textes de l'interface (à modifier ici)

@@ -182,3 +182,34 @@ describe('Texte de la zone 1 de la story', () => {
     expect(buildStoryText(draft({ mainText: 'A' }))).toBe('A');
   });
 });
+
+describe('fidélité des caractères (aucune normalisation)', () => {
+  // Séquences que NFC, NFD, NFKC ou NFKD modifieraient, écrites en \u{…}.
+  const SENSITIVE = [
+    'e\u{301}', // é décomposé (NFC le recompose)
+    '\u{E9}', // é composé (NFD le décompose)
+    '\u{30C4}\u{3099}', // ツ + dakuten combinant (NFC → ヅ)
+    '\u{30C5}', // ヅ (NFD → ツ + dakuten)
+    '\u{B5}', // signe micro (NFKC → μ grec)
+    '\u{212B}', // signe angström (NFC → Å)
+    '\u{FB01}', // ligature fi (NFKC → fi)
+    '\u{FF21}', // A pleine chasse (NFKC → A)
+    '\u{2BC}', // apostrophe modificative
+    '\u{2019}', // apostrophe typographique
+    "'", // apostrophe ASCII
+    '\u{202F}!', // espace fine insécable
+  ];
+  const cps = (s: string) => [...s].map((c) => c.codePointAt(0));
+
+  it.each(SENSITIVE)('%s traverse tweet, légende et story sans changer', (seq) => {
+    const text = `A${seq}B`;
+    const g: Group = { ...hasu, prefix: `P${seq}`, xHashtags: [`#x${seq}`], instaHashtags: [`#i${seq}`] };
+    const d = draft({ mainText: text, tweet2: text, instaExtra: text, instaHashtags: [`#i${seq}`] });
+    expect(cps(buildTweet1(g, text))).toEqual(cps(`P${seq}\n\n${text}\n\n#x${seq}`));
+    expect(cps(buildTweet2(text)!)).toEqual(cps(text));
+    expect(cps(buildInstaCaption(d, g, { bio: seq, story: seq }))).toEqual(
+      cps([`P${seq}`, text, text, text, `#i${seq}`].join('\n\n')),
+    );
+    expect(cps(buildStoryText(d))).toEqual(cps(`${text}\n\n${text}`));
+  });
+});

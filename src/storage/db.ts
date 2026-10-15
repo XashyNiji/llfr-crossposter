@@ -10,6 +10,8 @@ import type { Config } from '../core/model';
 export const DB_NAME = 'llfr-crossposter';
 const DB_VERSION = 1;
 const CONFIG_KEY = 'config';
+/** Copie d'une config illisible, gardée avant qu'elle ne soit remplacée. */
+export const UNREADABLE_BACKUP_KEY = 'config-illisible';
 
 interface CrossposterDB extends DBSchema {
   /** Réglages (clé → valeur). */
@@ -21,34 +23,69 @@ interface CrossposterDB extends DBSchema {
 let dbPromise: Promise<IDBPDatabase<CrossposterDB>> | null = null;
 
 function db(): Promise<IDBPDatabase<CrossposterDB>> {
-  dbPromise ??= openDB<CrossposterDB>(DB_NAME, DB_VERSION, {
-    upgrade(database) {
-      if (!database.objectStoreNames.contains('kv')) database.createObjectStore('kv');
-      if (!database.objectStoreNames.contains('templates')) {
-        database.createObjectStore('templates', { keyPath: 'id' });
-      }
-    },
-  });
+  if (!dbPromise) {
+    dbPromise = openDB<CrossposterDB>(DB_NAME, DB_VERSION, {
+      upgrade(database) {
+        if (!database.objectStoreNames.contains('kv')) database.createObjectStore('kv');
+        if (!database.objectStoreNames.contains('templates')) {
+          database.createObjectStore('templates', { keyPath: 'id' });
+        }
+      },
+      // Une autre fenêtre de l'app demande une version plus récente de la base :
+      // on libère la connexion pour ne pas la bloquer.
+      blocking() {
+        void closeDb();
+      },
+      terminated() {
+        dbPromise = null;
+      },
+    });
+    // Un échec d'ouverture ne doit pas être mémorisé : on réessaiera.
+    dbPromise.catch(() => {
+      dbPromise = null;
+    });
+  }
   return dbPromise;
 }
 
 /** Ferme la connexion (utile pour les tests). */
 export async function closeDb(): Promise<void> {
-  if (dbPromise) (await dbPromise).close();
+  const p = dbPromise;
   dbPromise = null;
+  if (p) (await p.catch(() => null))?.close();
 }
 
-/** Charge la configuration enregistrée, ou null si absente ou illisible. */
+export type StoredConfig =
+  | { status: 'empty' }
+  | { status: 'ok'; config: Config }
+  /** Une config existe mais n'est pas lisible (format inconnu) : une copie est gardée. */
+  | { status: 'unreadable' };
+
+/** Charge la configuration enregistrée. */
+export async function loadStoredConfig(): Promise<StoredConfig> {
+  const database = await db();
+  const raw = await database.get('kv', CONFIG_KEY);
+  if (raw === undefined) return { status: 'empty' };
+  const config = parseConfig(raw);
+  if (config) return { status: 'ok', config };
+  if ((await database.get('kv', UNREADABLE_BACKUP_KEY)) === undefined) {
+    await database.put('kv', raw, UNREADABLE_BACKUP_KEY);
+  }
+  return { status: 'unreadable' };
+}
+
+/** Raccourci : la config enregistrée, ou null si absente ou illisible. */
 export async function loadConfig(): Promise<Config | null> {
-  return parseConfig(await (await db()).get('kv', CONFIG_KEY));
+  const stored = await loadStoredConfig();
+  return stored.status === 'ok' ? stored.config : null;
 }
 
 export async function saveConfig(config: Config): Promise<void> {
   await (await db()).put('kv', config, CONFIG_KEY);
-  void requestPersistence();
 }
 
-export type PersistenceStatus = 'granted' | 'denied' | 'unsupported';
+/** 'prompt' : pas encore demandée. */
+export type PersistenceStatus = 'granted' | 'denied' | 'prompt' | 'unsupported';
 
 let persistRequested = false;
 
@@ -74,7 +111,8 @@ export async function persistenceStatus(): Promise<PersistenceStatus> {
   const storage = globalThis.navigator?.storage;
   if (!storage?.persisted) return 'unsupported';
   try {
-    return (await storage.persisted()) ? 'granted' : 'denied';
+    if (await storage.persisted()) return 'granted';
+    return persistRequested ? 'denied' : 'prompt';
   } catch {
     return 'unsupported';
   }
