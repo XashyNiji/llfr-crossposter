@@ -24,6 +24,7 @@ import { resetStory } from '../state/story';
 import { Counter } from './Counter';
 import { fr } from './fr';
 import { OutputCard } from './OutputCard';
+import { PostTemplates } from './PostTemplates';
 
 function textValue(e: Event): string {
   return (e.currentTarget as HTMLTextAreaElement).value;
@@ -73,6 +74,8 @@ export function InputScreen() {
             <p class="alert">{fr.input.noGroup}</p>
           )}
         </div>
+
+        <PostTemplates />
 
         <div class="field">
           <label for="main-text">
