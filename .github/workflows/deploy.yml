@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
 
@@ -36,6 +36,8 @@ jobs:
       - run: npm run build
 
       # Test de l'export de la story dans un vrai navigateur (japonais + emojis).
+      # Système figé (ubuntu-24.04) : la version de Playwright doit le prendre
+      # en charge ; les mettre à jour ensemble.
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - if: failure()
@@ -56,7 +58,7 @@ jobs:
   deploy:
     needs: build
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       pages: write
       id-token: write

@@ -21,8 +21,11 @@ import dancingLatinExt from '@fontsource/dancing-script/files/dancing-script-lat
 import fredokaLatin from '@fontsource/fredoka/files/fredoka-latin-600-normal.woff2?url';
 import fredokaLatinExt from '@fontsource/fredoka/files/fredoka-latin-ext-600-normal.woff2?url';
 import interGreek from '@fontsource/inter/files/inter-greek-500-normal.woff2?url';
+import interGreekBold from '@fontsource/inter/files/inter-greek-700-normal.woff2?url';
 import interLatin from '@fontsource/inter/files/inter-latin-500-normal.woff2?url';
+import interLatinBold from '@fontsource/inter/files/inter-latin-700-normal.woff2?url';
 import interLatinExt from '@fontsource/inter/files/inter-latin-ext-500-normal.woff2?url';
+import interLatinExtBold from '@fontsource/inter/files/inter-latin-ext-700-normal.woff2?url';
 import montserratLatin from '@fontsource/montserrat/files/montserrat-latin-600-normal.woff2?url';
 import montserratLatinExt from '@fontsource/montserrat/files/montserrat-latin-ext-600-normal.woff2?url';
 import neonLatin from '@fontsource/neonderthaw/files/neonderthaw-latin-400-normal.woff2?url';
@@ -49,7 +52,8 @@ export interface StoryFont {
   weight: 400 | 700;
   /** Effet néon (halo lumineux de la couleur du texte). */
   glow?: boolean;
-  files: { url: string; range: string }[];
+  /** Fichiers woff2, avec la plage de graisses qu'ils couvrent (100 à 900 par défaut). */
+  files: { url: string; range: string; weights?: string }[];
 }
 
 export const STORY_FONTS: readonly StoryFont[] = [
@@ -58,10 +62,15 @@ export const STORY_FONTS: readonly StoryFont[] = [
     label: 'Classic',
     family: 'Inter',
     weight: 400,
+    // Inter sert aussi de secours (μ, ʼ) aux autres styles : version grasse
+    // pour les styles gras, pour que μ ne paraisse pas plus maigre.
     files: [
-      { url: interLatin, range: LATIN },
-      { url: interLatinExt, range: LATIN_EXT },
-      { url: interGreek, range: GREEK },
+      { url: interLatin, range: LATIN, weights: '100 599' },
+      { url: interLatinExt, range: LATIN_EXT, weights: '100 599' },
+      { url: interGreek, range: GREEK, weights: '100 599' },
+      { url: interLatinBold, range: LATIN, weights: '600 900' },
+      { url: interLatinExtBold, range: LATIN_EXT, weights: '600 900' },
+      { url: interGreekBold, range: GREEK, weights: '600 900' },
     ],
   },
   {
@@ -169,7 +178,7 @@ export function registerFonts(): void {
   for (const f of STORY_FONTS) {
     for (const file of f.files) {
       const face = new FontFace(f.family, `url(${file.url}) format('woff2')`, {
-        weight: '100 900',
+        weight: file.weights ?? '100 900',
         style: 'normal',
         unicodeRange: file.range,
         display: 'block',
@@ -185,14 +194,26 @@ export function registerFonts(): void {
  * qui couvrent les caractères demandés (japonais compris). Sans cette attente,
  * le canvas dessinerait avec une police de remplacement, sans prévenir.
  */
+const alreadyLoaded = new Set<string>();
+
 export async function ensureFonts(items: readonly { font: FontId; text: string }[]): Promise<void> {
   if (!globalThis.document?.fonts) return;
   registerFonts();
+  // Un même texte dans une même police n'est demandé qu'une fois (pendant un
+  // glisser, l'aperçu est redessiné à chaque mouvement du doigt).
+  const todo = items.filter(({ font, text }) => !alreadyLoaded.has(`${font}\u{0}${text}`));
+  if (!todo.length) return;
   await Promise.all(
-    items.map(({ font, text }) =>
-      // Taille arbitraire : seule la famille et la graisse comptent pour le chargement.
-      document.fonts.load(textFont(font, 48), text || 'A').catch(() => []),
-    ),
+    todo.map(async ({ font, text }) => {
+      try {
+        // Taille arbitraire : seules la famille et la graisse comptent pour le chargement.
+        await document.fonts.load(textFont(font, 48), text || 'A');
+        if (alreadyLoaded.size > 500) alreadyLoaded.clear();
+        alreadyLoaded.add(`${font}\u{0}${text}`);
+      } catch {
+        // Police indisponible : le navigateur utilisera la suivante de la liste.
+      }
+    }),
   );
 }
 

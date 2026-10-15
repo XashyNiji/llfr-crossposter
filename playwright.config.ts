@@ -13,6 +13,9 @@ export default defineConfig({
     baseURL: 'http://localhost:4174/',
     locale: 'fr-FR',
     acceptDownloads: true,
+    // En cas d'échec : trace et capture d'écran dans test-results (récupérées par la CI).
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
   },
   webServer: {
     command: 'npx vite preview --port 4174 --strictPort',

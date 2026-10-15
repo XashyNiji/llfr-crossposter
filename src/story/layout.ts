@@ -31,17 +31,21 @@ export interface Line {
   width: number;
 }
 
-const graphemeSegmenter = new Intl.Segmenter('fr', { granularity: 'grapheme' });
+// Créés à la première utilisation (et non au chargement du module) : un
+// navigateur trop ancien ne bloque ainsi que l'éditeur de story, pas toute l'app.
+let graphemeSegmenter: Intl.Segmenter | null = null;
 
 export function graphemes(text: string): string[] {
+  graphemeSegmenter ??= new Intl.Segmenter('fr', { granularity: 'grapheme' });
   return Array.from(graphemeSegmenter.segment(text), (s) => s.segment);
 }
 
 // Emoji « officiel » (séquences comprises), y compris les symboles suivis du
 // sélecteur de présentation emoji U+FE0F (☀️). Un symbole seul (★, ☀) reste du texte.
-const EMOJI = /^\p{RGI_Emoji}$/v;
+let emojiRegExp: RegExp | null = null;
 export function isEmoji(grapheme: string): boolean {
-  return EMOJI.test(grapheme);
+  emojiRegExp ??= new RegExp('^\\p{RGI_Emoji}$', 'v');
+  return emojiRegExp.test(grapheme);
 }
 
 // Caractères « idéographiques » : coupure possible entre chacun d'eux.
@@ -73,58 +77,67 @@ const NO_LINE_END = new Set([
   '\u{3014}', '\u{3018}', '\u{3016}', '\u{301A}', '\u{301D}', '(', '[', '{', '\u{AB}', '\u{2018}', '\u{201C}',
 ]);
 
-/** Espaces où l'on peut couper (les insécables U+00A0, U+202F, U+2007 n'en font pas partie). */
-const BREAK_SPACE = /^[ \t]$/;
+/**
+ * Espaces où l'on peut couper : espace, tabulation et espace japonaise U+3000
+ * (coupure APRÈS elles seulement). Les insécables (U+00A0, U+202F, U+2007)
+ * n'en font pas partie.
+ */
+const BREAK_SPACE = /^[ \t\u{3000}]$/u;
+const NO_BREAK_END = /[\u{A0}\u{202F}\u{2007}\u{2060}]$/u;
 
 interface Unit {
   text: string;
   kind: PieceKind;
   /** Vrai si l'on peut couper la ligne juste après cette unité. */
   breakAfter: boolean;
+  /** Premier caractère (graphème), '' pour une unité faite d'espaces. */
+  first: string;
+  /** Dernier caractère hors espaces de fin, '' pour une unité faite d'espaces. */
+  last: string;
 }
 
-/** Découpe un paragraphe (sans \n) en unités insécables. */
+/**
+ * Découpe un paragraphe (sans \n) en unités insécables : mots latins,
+ * caractères japonais, emojis. Les espaces qui suivent une unité lui sont
+ * rattachés (jamais en début de ligne après une coupure).
+ */
 function units(paragraph: string): Unit[] {
   const out: Unit[] = [];
-  let word = ''; // mot latin en cours (avec ses espaces de fin)
-  const flushWord = () => {
-    if (word) out.push({ text: word, kind: 'text', breakAfter: true });
-    word = '';
-  };
+  let wordOpen = false; // la dernière unité est un mot latin sans espace final
   for (const g of graphemes(paragraph)) {
-    if (isEmoji(g)) {
-      flushWord();
-      out.push({ text: g, kind: 'emoji', breakAfter: true });
+    const prev = out.at(-1);
+    if (BREAK_SPACE.test(g)) {
+      if (prev) prev.text += g;
+      else out.push({ text: g, kind: 'text', breakAfter: true, first: '', last: '' });
+      wordOpen = false;
+    } else if (isEmoji(g)) {
+      out.push({ text: g, kind: 'emoji', breakAfter: true, first: g, last: g });
+      wordOpen = false;
     } else if (isCjk(g)) {
-      flushWord();
-      out.push({ text: g, kind: 'text', breakAfter: true });
-    } else if (BREAK_SPACE.test(g)) {
-      word += g;
+      out.push({ text: g, kind: 'text', breakAfter: true, first: g, last: g });
+      wordOpen = false;
+    } else if (wordOpen && prev) {
+      prev.text += g;
+      prev.last = g;
     } else {
-      // Un caractère après des espaces commence un nouveau mot.
-      if (/[ \t]$/.test(word)) flushWord();
-      word += g;
+      out.push({ text: g, kind: 'text', breakAfter: true, first: g, last: g });
+      wordOpen = true;
     }
   }
-  flushWord();
 
   // Collage (kinsoku, ponctuation, insécables).
   for (let i = 0; i < out.length - 1; i++) {
     const cur = out[i]!;
     const next = out[i + 1]!;
-    const lastOfCur = graphemes(cur.text.replace(/[ \t]+$/, '')).at(-1) ?? '';
-    const firstOfNext = graphemes(next.text)[0] ?? '';
-    // Sans espace entre deux mots latins (ex. « texte » suivi d'un emoji collé),
-    // on autorise quand même la coupure, sauf règles ci-dessous.
-    if (NO_LINE_START.has(firstOfNext) || NO_LINE_END.has(lastOfCur)) cur.breakAfter = false;
+    if (NO_LINE_START.has(next.first) || NO_LINE_END.has(cur.last)) cur.breakAfter = false;
     // Espace insécable en fin d'unité : colle à la suivante.
-    if (/[\u{A0}\u{202F}\u{2007}\u{2060}]$/u.test(cur.text)) cur.breakAfter = false;
+    if (NO_BREAK_END.test(cur.text)) cur.breakAfter = false;
   }
   return out;
 }
 
-/** Retire les espaces de fin d'une unité (pour mesurer la fin de ligne). */
-const trimEnd = (s: string) => s.replace(/[ \t]+$/, '');
+/** Retire les espaces de fin (pour mesurer et dessiner la fin de ligne). */
+const trimEnd = (s: string) => s.replace(/[ \t\u{3000}]+$/u, '');
 
 /**
  * Coupe le texte en lignes dans la largeur `maxWidth`. Chaque ligne est une
@@ -196,7 +209,7 @@ function splitChunk(chunk: Unit[], tooWide: (u: Unit) => boolean): Unit[] {
   const out: Unit[] = [];
   for (const u of chunk) {
     if (u.kind === 'emoji' || !tooWide(u)) out.push(u);
-    else for (const g of graphemes(u.text)) out.push({ text: g, kind: 'text', breakAfter: true });
+    else for (const g of graphemes(u.text)) out.push({ text: g, kind: 'text', breakAfter: true, first: g, last: g });
   }
   return out;
 }
@@ -209,10 +222,22 @@ function widthOf(us: Unit[], m: (s: string, kind: PieceKind) => number): number 
 /** Fusionne les unités consécutives de même type en morceaux. */
 function toPieces(us: Unit[]): { text: string; kind: PieceKind }[] {
   const pieces: { text: string; kind: PieceKind }[] = [];
-  for (const u of us) {
+  const add = (text: string, kind: PieceKind) => {
+    if (!text) return;
     const last = pieces.at(-1);
-    if (last && last.kind === u.kind) last.text += u.text;
-    else pieces.push({ text: u.text, kind: u.kind });
+    if (last && last.kind === kind) last.text += text;
+    else pieces.push({ text, kind });
+  };
+  for (const u of us) {
+    if (u.kind === 'emoji') {
+      // Les espaces rattachées à un emoji sont mesurées et dessinées avec la
+      // police du texte.
+      const core = trimEnd(u.text);
+      add(core, 'emoji');
+      add(u.text.slice(core.length), 'text');
+    } else {
+      add(u.text, u.kind);
+    }
   }
   return pieces;
 }

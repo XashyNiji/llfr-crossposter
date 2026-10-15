@@ -34,6 +34,24 @@ export async function decodeNewsImage(blob: Blob): Promise<ImageBitmap> {
   }
 }
 
+/** Plus grand côté de la copie du visuel utilisée pour l'aperçu. */
+export const PREVIEW_MAX_EDGE = 1280;
+
+/**
+ * Copie réduite du visuel pour l'aperçu (dessin plus rapide à chaque mouvement
+ * du doigt). Renvoie l'image elle-même si elle est déjà assez petite.
+ */
+export async function previewCopy(full: ImageBitmap): Promise<ImageBitmap> {
+  const longEdge = Math.max(full.width, full.height);
+  if (longEdge <= PREVIEW_MAX_EDGE) return full;
+  const k = PREVIEW_MAX_EDGE / longEdge;
+  return createImageBitmap(full, {
+    resizeWidth: Math.round(full.width * k),
+    resizeHeight: Math.round(full.height * k),
+    resizeQuality: 'high',
+  });
+}
+
 /** Template complet (pour l'export). */
 export function decodeTemplate(blob: Blob): Promise<ImageBitmap> {
   return decode(blob);

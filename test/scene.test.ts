@@ -8,7 +8,9 @@ import {
   newZone,
   outlinePoints,
   pinch,
+  smoothEdges,
   snap,
+  textCenter,
   STORY_H,
   STORY_W,
   type TextZone,
@@ -166,5 +168,54 @@ describe('contour du fond par ligne', () => {
       [0, 20],
       [0, 0],
     ]);
+  });
+});
+
+describe('fond par ligne sans crans', () => {
+  it('lignes de largeurs presque égales : même bord ; vraies marches conservées', () => {
+    const rects = [
+      { x0: 463.35, x1: 976.65, y0: 0, y1: 90 },
+      { x0: 461.45, x1: 978.55, y0: 90, y1: 180 },
+      { x0: 459.6, x1: 980.4, y0: 180, y1: 270 },
+      { x0: 600, x1: 840, y0: 270, y1: 360 },
+    ];
+    const out = smoothEdges(rects, 16);
+    expect(out.slice(0, 3).every((r) => r.x0 === 459.6 && r.x1 === 980.4)).toBe(true);
+    expect(out[3]).toEqual(rects[3]);
+    // l'entrée n'est pas modifiée
+    expect(rects[0]!.x0).toBe(463.35);
+  });
+
+  it('rayon nul : rien ne change', () => {
+    const rects = [
+      { x0: 10, x1: 90, y0: 0, y1: 10 },
+      { x0: 9, x1: 91, y0: 10, y1: 20 },
+    ];
+    expect(smoothEdges(rects, 0)).toEqual(rects);
+  });
+});
+
+describe('centre du texte pour l’aimantation', () => {
+  it('centre du bloc de texte, pas de la zone', () => {
+    const z = zone({ h: 600, align: 'center' });
+    const l = layoutZone(z, 'abc', measure);
+    // une ligne de 60 de haut + 2 × 10 de marge, en haut de la zone
+    expect(textCenter(z, l)).toEqual({ dx: 150, dy: 40 });
+    expect(textCenter(z, layoutZone(z, '', measure))).toEqual({ dx: 150, dy: 300 });
+  });
+});
+
+describe('cache des retours à la ligne', () => {
+  it('réutilise le découpage quand seule la position change', () => {
+    let calls = 0;
+    const counting: Measure = (s, k) => {
+      calls++;
+      return measure(s, k);
+    };
+    const cache = new Map();
+    layoutZone(zone(), 'Nouveau single annoncé', counting, cache);
+    const before = calls;
+    layoutZone(zone({ x: 500, y: 900 }), 'Nouveau single annoncé', counting, cache);
+    expect(calls).toBe(before);
   });
 });

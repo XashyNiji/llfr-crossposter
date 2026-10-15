@@ -110,3 +110,41 @@ describe('retour à la ligne', () => {
     expect(wrap('', 100)).toEqual(['']);
   });
 });
+
+describe('cas relevés par la revue', () => {
+  it('ponctuation fermante après un emoji ou du japonais : jamais seule en début de ligne', () => {
+    for (const [text, width] of [
+      ["C'est parti \u{1F389} !", 140],
+      ['\u{30E9}\u{30A4}\u{30D6}\u{6C7A}\u{5B9A} \u{FF01}', 100],
+      ['Super \u{1F600} \u{BB}', 80],
+    ] as const) {
+      // À partir de 60, le groupe « emoji + ponctuation » tient sur une ligne.
+      for (let w = 60; w <= width + 40; w += 10) {
+        for (const l of wrap(text, w)) {
+          expect(l).not.toMatch(/^[ !\u{FF01}\u{BB}]/u);
+        }
+      }
+    }
+  });
+
+  it('espace japonaise U+3000 : jamais en début de ligne, ignorée en fin de ligne', () => {
+    const text = '\u{30E9}\u{30D6}\u{30E9}\u{30A4}\u{30D6}\u{FF01}\u{3000}\u{30B9}\u{30FC}\u{30D1}\u{30FC}\u{30B9}\u{30BF}\u{30FC}';
+    for (let w = 40; w <= 300; w += 20) {
+      const lines = layoutText(text, w, measure);
+      for (const l of lines) {
+        expect(lineText(l).startsWith('\u{3000}')).toBe(false);
+        expect(lineText(l).endsWith('\u{3000}')).toBe(false);
+      }
+      // Le texte n'est jamais perdu : seules les espaces de fin de ligne sont omises au dessin.
+      expect(lines.map(lineText).join('').replace(/\u{3000}/gu, '')).toBe(text.replace(/\u{3000}/gu, ''));
+    }
+  });
+
+  it('espaces après un emoji mesurées avec la police du texte', () => {
+    const [line] = layoutText('\u{1F338} ok', 1000, measure);
+    expect(line!.pieces.map((p) => [p.text, p.kind])).toEqual([
+      ['\u{1F338}', 'emoji'],
+      [' ok', 'text'],
+    ]);
+  });
+});

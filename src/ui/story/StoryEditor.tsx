@@ -2,14 +2,15 @@
 import '@fontsource/noto-sans-jp/400.css';
 import '@fontsource/noto-sans-jp/700.css';
 import { useEffect, useState } from 'preact/hooks';
-import { fitScale } from '../../story/scene';
 import { preloadFonts, registerFonts } from '../../story/fonts';
+import { fitScale } from '../../story/scene';
 import {
   addZone,
   createExport,
   exporting,
   exportIsCurrent,
   exportResult,
+  imageLoading,
   importNewsImage,
   loadTemplates,
   newsImage,
@@ -26,8 +27,8 @@ import {
   updateImage,
 } from '../../state/story';
 import { fr } from '../fr';
-import { shareOrDownload, downloadBlob } from './share';
-import { StoryCanvas } from './StoryCanvas';
+import { downloadBlob, shareOrDownload } from './share';
+import { IMAGE_SCALE_MAX, IMAGE_SCALE_MIN, StoryCanvas } from './StoryCanvas';
 import { ZonePanel } from './ZonePanel';
 
 function TemplatePicker() {
@@ -71,10 +72,11 @@ function ImageFileButton({ label }: { label: string }) {
     input.value = '';
     if (file) await importNewsImage(file);
   }
+  const busy = imageLoading.value;
   return (
-    <label class="btn file-button">
-      <input type="file" accept="image/*" class="visually-hidden" onChange={onFile} />
-      {label}
+    <label class={`btn file-button${busy ? ' is-busy' : ''}`}>
+      <input type="file" accept="image/*" class="visually-hidden" onChange={onFile} disabled={busy} />
+      {busy ? fr.story.imageLoading : label}
     </label>
   );
 }
@@ -85,9 +87,9 @@ function ImagePanel() {
   if (!img || !placement) return null;
   const fit = fitScale(img.width, img.height);
   const percent = Math.round((placement.scale / fit) * 100);
+  const [min, max] = [IMAGE_SCALE_MIN * 100, IMAGE_SCALE_MAX * 100];
   return (
     <section class="card form" aria-label={fr.story.imageLabel}>
-      <h3>{fr.story.imageLabel}</h3>
       <div class="field slider">
         <label for="image-scale">
           {fr.story.imageSize} <span class="slider__value">{percent}{'\u{A0}'}%</span>
@@ -95,9 +97,9 @@ function ImagePanel() {
         <input
           id="image-scale"
           type="range"
-          min={10}
-          max={400}
-          value={Math.min(400, Math.max(10, percent))}
+          min={min}
+          max={max}
+          value={Math.min(max, Math.max(min, percent))}
           onInput={(e) => updateImage({ ...placement, scale: (fit * Number((e.currentTarget as HTMLInputElement).value)) / 100 })}
         />
       </div>
@@ -122,23 +124,31 @@ function ExportPanel() {
     setMessage(outcome === 'retry' ? fr.story.shareRetry : outcome === 'downloaded' ? fr.story.shareUnavailable : null);
   }
 
+  function onCreate() {
+    setMessage(null);
+    void createExport();
+  }
+
   return (
-    <section class="card form" aria-label={fr.story.export}>
-      <button type="button" class="btn btn--primary btn--block" disabled={exporting.value} onClick={() => { setMessage(null); void createExport(); }}>
-        {exporting.value ? fr.story.exporting : fr.story.export}
-      </button>
-      {result && !current && <p class="notice">{fr.story.exportStale}</p>}
-      {result && current && (
-        <>
+    <section class="card form export-panel" aria-label={fr.story.export}>
+      {result && current ? (
+        <div class="export-result">
           <img class="export-preview" src={result.url} alt={fr.story.exportPreviewAlt} />
-          <div class="row">
-            <button type="button" class="btn btn--primary" onClick={onShare}>
+          <div class="export-actions">
+            <button type="button" class="btn btn--primary btn--block" onClick={onShare}>
               {fr.story.share}
             </button>
-            <button type="button" class="btn" onClick={() => downloadBlob(result.blob, result.fileName)}>
+            <button type="button" class="btn btn--block" onClick={() => downloadBlob(result.blob, result.fileName)}>
               {fr.story.download}
             </button>
           </div>
+        </div>
+      ) : (
+        <>
+          {result && <p class="notice">{fr.story.exportStale}</p>}
+          <button type="button" class="btn btn--primary btn--block" disabled={exporting.value} onClick={onCreate}>
+            {exporting.value ? fr.story.exporting : fr.story.export}
+          </button>
         </>
       )}
       {message && (
@@ -147,6 +157,23 @@ function ExportPanel() {
         </p>
       )}
     </section>
+  );
+}
+
+/** Bandeau sous l'aperçu : ce qui est sélectionné, et « Terminé » pour désélectionner. */
+function SelectionBar() {
+  const sel = selection.value;
+  const zones = scene.value.zones;
+  if (!sel) return <p class="hint selection-hint">{fr.story.hintSelect}</p>;
+  const label =
+    sel.kind === 'image' ? fr.story.selectedImage : fr.story.selectedZone(zones.findIndex((z) => z.id === sel.id) + 1);
+  return (
+    <div class="selection-bar" role="status">
+      <strong>{label}</strong>
+      <button type="button" class="btn" onClick={() => (selection.value = null)}>
+        {fr.story.deselect}
+      </button>
+    </div>
   );
 }
 
@@ -173,6 +200,7 @@ export function StoryEditor() {
         </p>
       )}
 
+      {/* L'aperçu reste visible en haut pendant qu'on fait défiler les réglages. */}
       <StoryCanvas />
 
       <div class="story-toolbar">
@@ -185,9 +213,10 @@ export function StoryEditor() {
         </button>
       </div>
 
-      {zone ? <ZonePanel key={zone.id} zone={zone} /> : sel?.kind === 'image' ? <ImagePanel /> : <p class="hint">{fr.story.hintSelect}</p>}
-
       <ExportPanel />
+      <SelectionBar />
+
+      {zone ? <ZonePanel key={zone.id} zone={zone} /> : sel?.kind === 'image' ? <ImagePanel /> : null}
     </div>
   );
 }

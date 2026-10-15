@@ -5,14 +5,37 @@
 // retrouver dans l'image exportée.
 import { emojiFont, storyFont, textFont } from './fonts';
 import type { Measure, PieceKind } from './layout';
-import { coverRect, layoutZone, outlinePoints, STORY_H, STORY_W, type Rect, type Scene, type TextZone, type ZoneLayout } from './scene';
+import {
+  coverRect,
+  layoutZone,
+  outlinePoints,
+  STORY_H,
+  STORY_W,
+  type Rect,
+  type Scene,
+  type TextZone,
+  type WrapCache,
+  type ZoneLayout,
+} from './scene';
+
+/**
+ * Image à dessiner. `width`/`height` sont les dimensions d'ORIGINE : l'aperçu
+ * peut fournir une version réduite (`source`) sans changer la mise en page.
+ */
+export interface RenderImage {
+  source: CanvasImageSource;
+  width: number;
+  height: number;
+}
 
 export interface RenderAssets {
-  /** Template (fond). Peut être une version réduite pour l'aperçu. */
-  template: CanvasImageSource & { width: number; height: number } | null;
-  /** Image importée (visuel de la news). */
-  image: CanvasImageSource & { width: number; height: number } | null;
+  /** Template (fond). */
+  template: RenderImage | null;
+  /** Visuel de la news. */
+  image: RenderImage | null;
 }
+
+const wrapCache: WrapCache = new Map();
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -37,7 +60,16 @@ export function canvasMeasure(ctx: Ctx, zone: Pick<TextZone, 'font' | 'size'>): 
 /** Vide le cache des largeurs (à appeler quand une police finit de charger). */
 export function clearMeasureCache(): void {
   widthCache.clear();
+  wrapCache.clear();
 }
+
+/**
+ * Position de la ligne de base dans une ligne de texte : une seule pour le
+ * latin, le japonais et les emojis (sinon chaque police se centre à sa façon
+ * et les caractères « sautent » d'un morceau à l'autre). Le centre visuel
+ * d'un texte se trouve à environ 0,34 em au-dessus de sa ligne de base.
+ */
+const BASELINE_FROM_CENTER = 0.34;
 
 function roundedOutline(ctx: Ctx, rects: readonly Rect[], radius: number): void {
   const p = outlinePoints(rects);
@@ -80,18 +112,22 @@ function drawBackground(ctx: Ctx, zone: TextZone, layout: ZoneLayout): void {
 function drawText(ctx: Ctx, zone: TextZone, layout: ZoneLayout): void {
   const font = storyFont(zone.font);
   ctx.save();
-  ctx.textBaseline = 'middle';
+  ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'left';
   ctx.fillStyle = zone.color;
+  // Le flou des ombres ne suit pas la mise à l'échelle du canvas : on le
+  // corrige pour que l'aperçu ait le même halo que l'export.
+  const t = ctx.getTransform();
+  const scale = Math.hypot(t.a, t.b) || 1;
   const passes = font.glow ? 2 : 1;
   for (let pass = 0; pass < passes; pass++) {
     if (font.glow) {
       ctx.shadowColor = zone.color;
-      ctx.shadowBlur = zone.size * (pass === 0 ? 0.6 : 0.25);
+      ctx.shadowBlur = zone.size * (pass === 0 ? 0.6 : 0.25) * scale;
     }
     layout.lines.forEach((line, i) => {
       let x = layout.lineX[i]!;
-      const y = layout.lineTop[i]! + layout.lineHeightPx / 2;
+      const y = layout.lineTop[i]! + layout.lineHeightPx / 2 + zone.size * BASELINE_FROM_CENTER;
       for (const piece of line.pieces) {
         ctx.font = piece.kind === 'emoji' ? emojiFont(zone.size) : textFont(zone.font, zone.size);
         ctx.fillText(piece.text, x, y);
@@ -122,7 +158,8 @@ export function renderScene(
 
   if (assets.template) {
     const r = coverRect(assets.template.width, assets.template.height);
-    ctx.drawImage(assets.template, r.x, r.y, r.w, r.h);
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(assets.template.source, r.x, r.y, r.w, r.h);
   } else {
     const g = ctx.createLinearGradient(0, 0, 0, STORY_H);
     g.addColorStop(0, '#3a1030');
@@ -136,12 +173,12 @@ export function renderScene(
     const w = assets.image.width * scale;
     const h = assets.image.height * scale;
     ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(assets.image, cx - w / 2, cy - h / 2, w, h);
+    ctx.drawImage(assets.image.source, cx - w / 2, cy - h / 2, w, h);
   }
 
   const layouts = new Map<string, ZoneLayout>();
   for (const zone of scene.zones) {
-    const layout = layoutZone(zone, zoneText(zone), canvasMeasure(ctx, zone));
+    const layout = layoutZone(zone, zoneText(zone), canvasMeasure(ctx, zone), wrapCache);
     layouts.set(zone.id, layout);
     drawBackground(ctx, zone, layout);
     drawText(ctx, zone, layout);
@@ -152,13 +189,13 @@ export function renderScene(
 /** Calcule la mise en page des zones sans rien dessiner (débordements). */
 export function measureScene(ctx: Ctx, scene: Scene, zoneText: ZoneTextResolver): Map<string, ZoneLayout> {
   const layouts = new Map<string, ZoneLayout>();
-  for (const zone of scene.zones) layouts.set(zone.id, layoutZone(zone, zoneText(zone), canvasMeasure(ctx, zone)));
+  for (const zone of scene.zones) layouts.set(zone.id, layoutZone(zone, zoneText(zone), canvasMeasure(ctx, zone), wrapCache));
   return layouts;
 }
 
 /**
- * Export PNG en pleine résolution. `assets.template` doit être le template
- * complet (pas la version réduite de l'aperçu).
+ * Export PNG en pleine résolution. Les images fournies doivent être les
+ * versions complètes (pas les copies réduites de l'aperçu).
  */
 export async function exportPng(scene: Scene, assets: RenderAssets, zoneText: ZoneTextResolver): Promise<Blob> {
   const canvas = document.createElement('canvas');

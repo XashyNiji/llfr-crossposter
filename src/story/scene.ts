@@ -140,10 +140,24 @@ export interface ZoneLayout {
   overflow: boolean;
 }
 
-export function layoutZone(zone: TextZone, text: string, measure: Measure): ZoneLayout {
+/**
+ * Cache des retours à la ligne : pendant un glisser, seule la position change,
+ * inutile de redécouper le texte à chaque mouvement du doigt.
+ */
+export type WrapCache = Map<string, Line[]>;
+
+export function layoutZone(zone: TextZone, text: string, measure: Measure, cache?: WrapCache): ZoneLayout {
   const inset = zone.bgMode === 'none' ? 0 : zone.bgPadding;
   const maxWidth = Math.max(1, zone.w - 2 * inset);
-  const lines = layoutText(text, maxWidth, measure);
+  const key = `${zone.font}\u{0}${zone.size}\u{0}${maxWidth}\u{0}${text}`;
+  let lines = cache?.get(key);
+  if (!lines) {
+    lines = layoutText(text, maxWidth, measure);
+    if (cache) {
+      if (cache.size > 200) cache.clear();
+      cache.set(key, lines);
+    }
+  }
   const lineHeightPx = zone.size * zone.lineHeight;
 
   const lineX = lines.map((l) =>
@@ -161,12 +175,15 @@ export function layoutZone(zone: TextZone, text: string, measure: Measure): Zone
   const closeGroup = () => {
     if (!group.length) return;
     lineRects.push(
-      group.map((i, k) => ({
-        x0: lineX[i]! - inset,
-        x1: lineX[i]! + lines[i]!.width + inset,
-        y0: lineTop[i]! - (k === 0 ? inset : 0),
-        y1: lineTop[i]! + lineHeightPx + (k === group.length - 1 ? inset : 0),
-      })),
+      smoothEdges(
+        group.map((i, k) => ({
+          x0: lineX[i]! - inset,
+          x1: lineX[i]! + lines[i]!.width + inset,
+          y0: lineTop[i]! - (k === 0 ? inset : 0),
+          y1: lineTop[i]! + lineHeightPx + (k === group.length - 1 ? inset : 0),
+        })),
+        zone.bgRadius,
+      ),
     );
     group = [];
   };
@@ -191,6 +208,39 @@ export function layoutZone(zone: TextZone, text: string, measure: Measure): Zone
   const overflow = text.length > 0 && (textHeight > zone.h + 0.5 || tooWide);
 
   return { lines, lineHeightPx, inset, lineX, lineTop, lineRects, blockRect, overflow };
+}
+
+/**
+ * Fond par ligne : deux lignes voisines de largeurs presque égales (écart
+ * inférieur à deux rayons) reçoivent le même bord, sinon le contour aurait de
+ * petits crans à angle presque droit. Les vraies marches gardent leurs arrondis.
+ */
+export function smoothEdges(rects: readonly Rect[], radius: number): Rect[] {
+  const out = rects.map((r) => ({ ...r }));
+  const limit = 2 * radius;
+  for (let changed = true, guard = 0; changed && guard < out.length * 2; guard++) {
+    changed = false;
+    for (let i = 0; i < out.length - 1; i++) {
+      const a = out[i]!;
+      const b = out[i + 1]!;
+      if (a.x1 !== b.x1 && Math.abs(a.x1 - b.x1) < limit) {
+        a.x1 = b.x1 = Math.max(a.x1, b.x1);
+        changed = true;
+      }
+      if (a.x0 !== b.x0 && Math.abs(a.x0 - b.x0) < limit) {
+        a.x0 = b.x0 = Math.min(a.x0, b.x0);
+        changed = true;
+      }
+    }
+  }
+  return out;
+}
+
+/** Centre du texte affiché (pour l'aimantation), ou centre de la zone si elle est vide. */
+export function textCenter(zone: TextZone, layout: ZoneLayout | undefined): { dx: number; dy: number } {
+  const r = layout?.blockRect;
+  if (!r) return { dx: zone.w / 2, dy: zone.h / 2 };
+  return { dx: (r.x0 + r.x1) / 2 - zone.x, dy: (r.y0 + r.y1) / 2 - zone.y };
 }
 
 /**

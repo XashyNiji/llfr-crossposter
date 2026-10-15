@@ -52,9 +52,12 @@ rien de payant.
 2. Dans l'onglet **Story**, choisis le template en haut (le dernier utilisé est
    retenu), puis **Importer le visuel** depuis la galerie. Le visuel est centré
    et tient entier dans la story.
-3. **Le visuel** : touche-le pour le sélectionner, glisse-le au doigt, pince à
-   deux doigts ou utilise le curseur « Taille du visuel » pour le redimensionner
-   (proportions conservées).
+3. **Gestes** : un toucher **sélectionne** (une zone de texte, ou le visuel) ;
+   on ne déplace que l'élément déjà sélectionné. Ailleurs, glisser verticalement
+   fait défiler la page. « Terminé » (ou toucher un endroit vide) désélectionne.
+   L'aperçu reste en haut de l'écran pendant qu'on fait défiler les réglages.
+   **Le visuel** sélectionné se glisse au doigt et se redimensionne en pinçant à
+   deux doigts ou avec le curseur « Taille du visuel » (proportions conservées).
 4. **Les zones de texte** : la zone 1 reprend le texte principal + le texte du
    tweet 2 (sans préfixe ni hashtags) et suit la saisie tant que tu ne modifies
    pas son texte dans l'éditeur. **Ajouter une zone de texte** crée une zone vide.
@@ -62,16 +65,17 @@ rien de payant.
    interlignage, largeur, hauteur, fond (aucun, bloc, ou par ligne façon Insta,
    avec couleur, opacité, coins arrondis et marge interne). Glisse-la au doigt ;
    les poignées rondes changent sa largeur et sa hauteur.
-5. Des repères bleus apparaissent quand une zone ou le visuel est centré
-   horizontalement ou verticalement (aimantation).
+5. Des repères bleus apparaissent quand le texte d'une zone ou le visuel est
+   centré horizontalement ou verticalement (aimantation).
 6. Si le texte ne tient pas, la zone a un **contour rouge** et l'alerte « Texte
    trop long » s'affiche : réduis la taille, agrandis la zone ou utilise une
    deuxième zone. La police n'est jamais réduite automatiquement.
 7. **Créer l'image** produit le PNG en pleine résolution, puis **Partager**
    (pour l'envoyer directement dans Instagram) ou **Télécharger**. Si le partage
    de fichiers n'est pas possible, l'image est téléchargée.
-8. **Réinitialiser la mise en page** revient à la zone 1 seule, visuel recentré.
-   Rien n'est mémorisé d'une story à l'autre, sauf le template choisi.
+8. **Réinitialiser la mise en page** revient à la zone 1 seule (avec le texte de
+   la saisie), visuel recentré. Rien n'est mémorisé d'une story à l'autre, sauf
+   le template choisi.
 
 Les contours, poignées et repères ne sont jamais dans l'image exportée.
 
