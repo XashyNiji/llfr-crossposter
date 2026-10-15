@@ -14,6 +14,11 @@ import {
   type TemplateView,
 } from '../state/story';
 import { isStoryFormat } from '../story/images';
+import { parseBackup } from '../core/backup';
+import { buildBackup, restoreTemplates } from '../storage/backup';
+import { setConfig } from '../state/app';
+import { reloadTemplatesAfterImport } from '../state/story';
+import { downloadBlob } from './story/share';
 import { fr } from './fr';
 
 // Attributs pour que le clavier (Gboard…) ne « corrige » pas les préfixes et
@@ -303,6 +308,77 @@ function TemplatesSection() {
   );
 }
 
+function BackupSection() {
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function onExport() {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const d = new Date();
+      const p = (n: number) => String(n).padStart(2, '0');
+      downloadBlob(await buildBackup(config.value, d), `llfr-config-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}.json`);
+    } catch (e) {
+      setMessage(fr.backup.failed(e instanceof Error ? e.message : String(e)));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onImport(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    setMessage(null);
+    let raw: unknown;
+    try {
+      raw = JSON.parse(await file.text());
+    } catch {
+      setMessage(fr.backup.failed('fichier JSON illisible.'));
+      return;
+    }
+    const parsed = parseBackup(raw);
+    if (!parsed.ok) {
+      setMessage(fr.backup.failed(parsed.error));
+      return;
+    }
+    const { backup } = parsed;
+    if (!window.confirm(fr.backup.confirm(backup.config.groups.length, backup.templates.length))) return;
+    setBusy(true);
+    try {
+      await restoreTemplates(backup);
+      await setConfig(backup.config);
+      await reloadTemplatesAfterImport();
+      setMessage(fr.backup.done);
+    } catch (err) {
+      setMessage(fr.backup.failed(err instanceof Error ? err.message : String(err)));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section class="card form" aria-labelledby="backup-title">
+      <h2 id="backup-title">{fr.backup.title}</h2>
+      <p class="hint">{fr.backup.hint}</p>
+      <button type="button" class="btn btn--primary btn--block" onClick={onExport} disabled={busy}>
+        {busy ? fr.backup.exporting : fr.backup.export}
+      </button>
+      <label class={`btn btn--block file-button${busy ? ' is-busy' : ''}`}>
+        <input type="file" accept="application/json,.json" class="visually-hidden" onChange={onImport} disabled={busy} />
+        {fr.backup.import}
+      </label>
+      {message && (
+        <p class="notice" role="status">
+          {message}
+        </p>
+      )}
+    </section>
+  );
+}
+
 function StorageSection() {
   const status = persistence.value;
   if (status === null) return null;
@@ -331,7 +407,13 @@ export function SettingsScreen() {
       <GroupsSection />
       <LinkSection />
       <TemplatesSection />
+      <BackupSection />
       <StorageSection />
+      <p class="hint licenses-link">
+        <a class="link" href="./LICENSES.txt" target="_blank" rel="noopener">
+          {fr.licenses}
+        </a>
+      </p>
     </div>
   );
 }

@@ -22,8 +22,24 @@ rien de payant.
 |---|---|---|
 | (a) | Saisie, sorties X et Insta, réglages des groupes et du lien | ✅ |
 | (b) | Éditeur de story (templates, image, zones de texte, export PNG) | ✅ |
-| (c) | Hors-ligne et installation Android | à venir |
-| (d) | Export / import de la config | à venir |
+| (c) | Hors-ligne et installation Android | ✅ |
+| (d) | Export / import de la config | ✅ |
+
+**Adresse de l'app : https://xashyniji.github.io/llfr-crossposter/**
+
+## Installer l'app sur Android
+
+1. Ouvre **https://xashyniji.github.io/llfr-crossposter/** dans **Chrome**
+   (avec une connexion internet, la première fois).
+2. Menu **⋮** → **Installer l'application** (ou « Ajouter à l'écran d'accueil »).
+3. L'icône « LLFR » apparaît sur l'écran d'accueil. L'app s'ouvre en plein écran
+   et fonctionne ensuite **hors connexion** (le message « L'app fonctionne
+   maintenant hors connexion » s'affiche quand tout est prêt).
+4. Quand une nouvelle version est publiée, un bandeau « Nouvelle version
+   disponible » propose de **Recharger** (rien n'est rechargé sans ton accord).
+
+Pour le staff : installe l'app, puis **Réglages → Sauvegarde et partage →
+Importer une config** avec le fichier que je t'envoie (voir ci-dessous).
 
 ## Utilisation
 
@@ -97,6 +113,21 @@ JP** (normal ou gras selon le style), en secours de chaque police : jamais de
 carrés. Les emojis utilisent la police emoji du téléphone (leur dessin peut donc
 varier d'un téléphone à l'autre). Toutes les polices sont incluses dans l'app
 (aucun CDN) et sous licence libre OFL.
+
+### Sauvegarde et partage de la config
+
+**Réglages → Sauvegarde et partage** :
+
+- **Exporter la config** télécharge un fichier `llfr-config-AAAAMMJJ.json` avec
+  tous les groupes, les formulations de lien et les templates (PNG inclus).
+  Garde-le comme sauvegarde, et envoie-le au staff (Discord, WhatsApp, Drive…).
+- **Importer une config** lit ce fichier, le vérifie entièrement, affiche un
+  récapitulatif et, après confirmation, **remplace** tous les réglages et
+  templates du téléphone. Un fichier invalide ne change rien.
+
+Le navigateur peut effacer les données d'un site peu utilisé : installe l'app
+(la protection est alors généralement accordée, voir Réglages → Stockage) et
+exporte régulièrement ta config.
 
 ### Règles de mise en forme
 
@@ -173,6 +204,7 @@ src/
     count.ts      compteurs (seul fichier qui utilise twitter-text)
     hashtags.ts   découpage, avertissements, limite de 5
     config.ts     validation de la config, opérations sur les groupes
+    backup.ts     format du fichier de sauvegarde (export / import)
   storage/   IndexedDB (base « llfr-crossposter »), navigator.storage.persist(),
              saisie en cours (localStorage)
   story/     éditeur de story, sans interface
@@ -191,7 +223,9 @@ src/
     story/        écran de l'éditeur (chargé seulement à l'ouverture de l'onglet)
   styles.css  couleurs (variables en haut du fichier) et mise en page
 test/        tests unitaires (Vitest)
-e2e/         test de l'export de la story dans un vrai navigateur (Playwright)
+e2e/         tests dans un vrai navigateur (Playwright) : export de la story,
+             hors connexion
+public/      icônes de l'app, LICENSES.txt (licences des polices et bibliothèques)
 ```
 
 ### Recettes
@@ -221,6 +255,8 @@ e2e/         test de l'export de la story dans un vrai navigateur (Playwright)
 - **Canvas 2D** pour la story : `Intl.Segmenter` découpe le texte (y compris le
   japonais, qui n'a pas d'espaces) ; les polices sont chargées avec
   `document.fonts.load` avant chaque dessin.
+- **vite-plugin-pwa** (Workbox) pour le hors-ligne : toutes les ressources,
+  polices comprises, sont mises en cache à la première visite.
 - **Vitest** (+ happy-dom et Testing Library) pour les tests unitaires,
   **Playwright** pour le test de l'export dans Chromium.
 - Les versions des dépendances sont **figées** dans `package.json` pour éviter les

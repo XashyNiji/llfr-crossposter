@@ -3,6 +3,7 @@ import { fr } from './fr';
 import { InputScreen } from './InputScreen';
 import { SettingsScreen } from './SettingsScreen';
 import { StoryScreen } from './StoryScreen';
+import { UpdateBanner } from './UpdateBanner';
 
 // Navigation par « # » dans l'adresse (#/, #/story, #/reglages) :
 // GitHub Pages ne sait pas servir d'autres chemins qu'index.html.
@@ -35,6 +36,7 @@ export function App() {
       <header class="topbar">
         <h1>{fr.appName}</h1>
       </header>
+      <UpdateBanner />
       <main>
         {current === 'input' && <InputScreen />}
         {current === 'story' && <StoryScreen />}

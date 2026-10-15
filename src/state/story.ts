@@ -317,6 +317,13 @@ export async function importTemplates(files: readonly File[]): Promise<ImportRep
   return report;
 }
 
+/** Après un import de config : relit les templates et reprend le premier. */
+export async function reloadTemplatesAfterImport(): Promise<void> {
+  templateId.value = null;
+  await loadTemplates();
+  if (templateId.peek() === null) await selectTemplate(null, false);
+}
+
 export async function renameTemplateById(id: string, name: string): Promise<void> {
   await renameTemplate(id, name);
   await refreshTemplates();

@@ -819,3 +819,21 @@ input[type='range'] {
   color: var(--accent);
   font-weight: 600;
 }
+
+/* ------------------------------------------------------------ Bandeau de mise à jour */
+.update-banner {
+  position: sticky;
+  top: calc(48px + env(safe-area-inset-top));
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  max-width: 720px;
+  margin: 8px auto 0;
+  padding: 8px 8px 8px 14px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 2px solid var(--accent);
+  font-weight: 600;
+}

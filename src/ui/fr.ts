@@ -130,6 +130,24 @@ export const fr = {
     resizeHeight: 'Changer la hauteur',
     resizeBoth: 'Changer la taille',
   },
+  pwa: {
+    newVersion: 'Nouvelle version disponible.',
+    reload: 'Recharger',
+    offlineReady: 'L’app fonctionne maintenant hors connexion.',
+    ok: 'OK',
+  },
+  backup: {
+    title: 'Sauvegarde et partage',
+    hint: 'Un fichier avec tous les réglages et les templates : pour sauvegarder, ou pour donner tes réglages au staff.',
+    export: 'Exporter la config',
+    exporting: 'Préparation…',
+    import: 'Importer une config',
+    confirm: (groups: number, templates: number) =>
+      `Remplacer TOUS les réglages de ce téléphone par ceux du fichier (${groups} groupes, ${templates} templates)${FINE}?`,
+    done: 'Config importée.',
+    failed: (msg: string) => `Import impossible${NB}: ${msg}`,
+  },
+  licenses: 'Licences des polices et bibliothèques',
   settings: {
     groupsTitle: 'Groupes',
     addGroup: 'Ajouter un groupe',

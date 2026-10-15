@@ -174,3 +174,25 @@ test('un simple toucher sélectionne sans déplacer ni jeter l’image créée',
   expect(await zone.boundingBox()).toEqual(before);
   await expect(page.locator('.export-preview')).toBeVisible();
 });
+
+test('hors connexion : l’app et l’éditeur de story fonctionnent après la première visite', async ({ page, context }) => {
+  await page.goto('./');
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+  });
+  // Laisse le service worker finir de mettre en cache, puis coupe le réseau.
+  await page.waitForFunction(async () => (await caches.keys()).some((k) => k.includes('precache')));
+  await page.waitForTimeout(1500);
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.locator('#main-text')).toBeVisible();
+  await page.locator('#main-text').fill('\u{8679}\u{30F6}\u{54B2} hors ligne \u{1F338}');
+  await page.getByRole('link', { name: /Story/ }).click();
+  await expect(page.locator('.story-preview__canvas')).toBeVisible();
+  const notoLoaded = await page.evaluate(async () => {
+    await document.fonts.load('400 48px "Noto Sans JP"', '\u{8679}\u{30F6}\u{54B2}');
+    return [...document.fonts].some((f) => f.family.replace(/"/g, '') === 'Noto Sans JP' && f.status === 'loaded');
+  });
+  expect(notoLoaded).toBe(true);
+  await context.setOffline(false);
+});
