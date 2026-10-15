@@ -4,6 +4,16 @@ import { formatHashtagList, hashtagWarnings, parseHashtagList } from '../core/ha
 import type { Group } from '../core/model';
 import { isBlank } from '../core/blocks';
 import { config, deleteGroup, moveGroup, persistence, saveError, saveGroup, setLinkMentions } from '../state/app';
+import {
+  importTemplates,
+  loadTemplates,
+  removeTemplate,
+  renameTemplateById,
+  templates,
+  templatesLoaded,
+  type TemplateView,
+} from '../state/story';
+import { isStoryFormat } from '../story/images';
 import { fr } from './fr';
 
 // Attributs pour que le clavier (Gboard…) ne « corrige » pas les préfixes et
@@ -215,6 +225,84 @@ function LinkSection() {
   );
 }
 
+function TemplateItem({ t }: { t: TemplateView }) {
+  async function onRename(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    // Un nom vide n'est pas enregistré : on remet l'ancien.
+    if (isBlank(input.value)) input.value = t.name;
+    else if (input.value !== t.name) await renameTemplateById(t.id, input.value);
+  }
+  async function onDelete() {
+    if (window.confirm(fr.settings.templateDeleteConfirm(t.name))) await removeTemplate(t.id);
+  }
+  return (
+    <li class="template-item">
+      <img class="template-item__thumb" src={t.thumbUrl} alt="" width={54} height={96} />
+      <div class="template-item__body">
+        <input
+          class="input"
+          type="text"
+          defaultValue={t.name}
+          aria-label={fr.settings.templateName(t.name)}
+          onChange={onRename}
+          {...RAW_INPUT}
+        />
+        {!isStoryFormat(t.width, t.height) && <p class="warning">{fr.settings.templateWrongSize(t.width, t.height)}</p>}
+        <button type="button" class="btn btn--danger" onClick={onDelete}>
+          {fr.settings.delete}
+        </button>
+      </div>
+    </li>
+  );
+}
+
+function TemplatesSection() {
+  const [busy, setBusy] = useState(false);
+  const [messages, setMessages] = useState<string[]>([]);
+  useEffect(() => {
+    if (!templatesLoaded.value) void loadTemplates();
+  }, []);
+
+  async function onFiles(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    const files = [...(input.files ?? [])];
+    input.value = '';
+    if (!files.length) return;
+    setBusy(true);
+    const report = await importTemplates(files);
+    setBusy(false);
+    setMessages([
+      ...(report.imported.length ? [fr.settings.templatesImported(report.imported.length)] : []),
+      ...report.errors,
+    ]);
+  }
+
+  return (
+    <section class="card" aria-labelledby="templates-title">
+      <h2 id="templates-title">{fr.settings.templatesTitle}</h2>
+      <p class="hint">{fr.settings.templatesHint}</p>
+      {templates.value.length === 0 ? (
+        <p>{fr.settings.templatesEmpty}</p>
+      ) : (
+        <ul class="template-list">
+          {templates.value.map((t) => (
+            <TemplateItem key={`${t.id}:${t.name}`} t={t} />
+          ))}
+        </ul>
+      )}
+      {messages.map((m) => (
+        <p key={m} class="notice" role="status">
+          {m}
+        </p>
+      ))}
+      <label class={`btn btn--primary btn--block file-button${busy ? ' is-busy' : ''}`}>
+        <input type="file" accept="image/png" multiple class="visually-hidden" onChange={onFiles} disabled={busy} />
+        {busy ? fr.settings.templatesImporting : fr.settings.templatesImport}
+      </label>
+    </section>
+  );
+}
+
 function StorageSection() {
   const status = persistence.value;
   if (status === null) return null;
@@ -242,6 +330,7 @@ export function SettingsScreen() {
       )}
       <GroupsSection />
       <LinkSection />
+      <TemplatesSection />
       <StorageSection />
     </div>
   );

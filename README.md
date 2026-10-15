@@ -5,7 +5,7 @@ et l'app prépare :
 
 - le ou les **tweets** (avec le compteur officiel de X) ;
 - la **légende du post Instagram** ;
-- une **image de story** sur nos templates (étape b, en cours).
+- une **image de story** (PNG 1440 × 2560) sur nos templates.
 
 C'est une PWA : elle s'utilise dans Chrome sur Android et pourra s'installer comme
 une app. Tout se passe dans le téléphone : pas de serveur, pas de compte, pas d'IA,
@@ -21,7 +21,7 @@ rien de payant.
 | Étape | Contenu | État |
 |---|---|---|
 | (a) | Saisie, sorties X et Insta, réglages des groupes et du lien | ✅ |
-| (b) | Éditeur de story (templates, image, zones de texte, export PNG) | à venir |
+| (b) | Éditeur de story (templates, image, zones de texte, export PNG) | ✅ |
 | (c) | Hors-ligne et installation Android | à venir |
 | (d) | Export / import de la config | à venir |
 
@@ -43,6 +43,56 @@ rien de payant.
    saisie gardée). Le groupe choisi est conservé.
 6. **Réglages** : ajoute, modifie, supprime ou réordonne les groupes (↑ / ↓), et
    change les formulations « Lien en bio » / « Lien en story ».
+
+### Story Instagram
+
+1. Dans **Réglages → Templates de story**, importe tes PNG (1440 × 2560). Ils
+   restent dans le téléphone. Un template d'une autre taille est accepté, mais
+   recadré pour remplir le format.
+2. Dans l'onglet **Story**, choisis le template en haut (le dernier utilisé est
+   retenu), puis **Importer le visuel** depuis la galerie. Le visuel est centré
+   et tient entier dans la story.
+3. **Le visuel** : touche-le pour le sélectionner, glisse-le au doigt, pince à
+   deux doigts ou utilise le curseur « Taille du visuel » pour le redimensionner
+   (proportions conservées).
+4. **Les zones de texte** : la zone 1 reprend le texte principal + le texte du
+   tweet 2 (sans préfixe ni hashtags) et suit la saisie tant que tu ne modifies
+   pas son texte dans l'éditeur. **Ajouter une zone de texte** crée une zone vide.
+   Touche une zone pour la régler : texte, police, taille, couleur, alignement,
+   interlignage, largeur, hauteur, fond (aucun, bloc, ou par ligne façon Insta,
+   avec couleur, opacité, coins arrondis et marge interne). Glisse-la au doigt ;
+   les poignées rondes changent sa largeur et sa hauteur.
+5. Des repères bleus apparaissent quand une zone ou le visuel est centré
+   horizontalement ou verticalement (aimantation).
+6. Si le texte ne tient pas, la zone a un **contour rouge** et l'alerte « Texte
+   trop long » s'affiche : réduis la taille, agrandis la zone ou utilise une
+   deuxième zone. La police n'est jamais réduite automatiquement.
+7. **Créer l'image** produit le PNG en pleine résolution, puis **Partager**
+   (pour l'envoyer directement dans Instagram) ou **Télécharger**. Si le partage
+   de fichiers n'est pas possible, l'image est téléchargée.
+8. **Réinitialiser la mise en page** revient à la zone 1 seule, visuel recentré.
+   Rien n'est mémorisé d'une story à l'autre, sauf le template choisi.
+
+Les contours, poignées et repères ne sont jamais dans l'image exportée.
+
+#### Polices
+
+| Style Instagram | Police libre utilisée |
+|---|---|
+| Classic | Inter |
+| Modern | Montserrat |
+| Neon | Neonderthaw (avec halo lumineux) |
+| Typewriter | Courier Prime |
+| Strong | Anton |
+| Elegant | Playfair Display |
+| Signature | Dancing Script |
+| Bubble | Fredoka |
+
+Toutes gèrent les accents français. Le japonais est affiché avec **Noto Sans
+JP** (normal ou gras selon le style), en secours de chaque police : jamais de
+carrés. Les emojis utilisent la police emoji du téléphone (leur dessin peut donc
+varier d'un téléphone à l'autre). Toutes les polices sont incluses dans l'app
+(aucun CDN) et sous licence libre OFL.
 
 ### Règles de mise en forme
 
@@ -101,7 +151,11 @@ npm run dev        # lance l'app en local : ouvre l'adresse affichée
 npm test           # lance tous les tests
 npm run typecheck  # vérifie les types TypeScript
 npm run build      # construit la version publiée dans dist/
+npm run test:e2e   # teste l'export de la story dans Chromium (après npm run build)
 ```
+
+Pour `test:e2e` sur ta machine, installe d'abord le navigateur de test :
+`npx playwright install chromium`.
 
 ### Organisation du code
 
@@ -117,11 +171,23 @@ src/
     config.ts     validation de la config, opérations sur les groupes
   storage/   IndexedDB (base « llfr-crossposter »), navigator.storage.persist(),
              saisie en cours (localStorage)
+  story/     éditeur de story, sans interface
+    layout.ts     retour à la ligne (japonais, insécables, emojis), testé
+    scene.ts      modèle de la story (zones, visuel), géométrie, testé
+    fonts.ts      liste des polices et chargement (document.fonts.load)
+    render.ts     dessin sur canvas, identique pour l'aperçu et l'export
+    images.ts     décodage des images, miniatures
+  storage/   IndexedDB (base « llfr-crossposter ») : réglages, templates ;
+             navigator.storage.persist() ; saisie en cours (localStorage)
   state/     état de l'app (signaux Preact) et sorties calculées en direct
+    app.ts        saisie, réglages, sorties X et Insta
+    story.ts      éditeur de story (scène, templates, export)
   ui/        écrans et composants Preact
     fr.ts         TOUS les textes de l'interface (à modifier ici)
+    story/        écran de l'éditeur (chargé seulement à l'ouverture de l'onglet)
   styles.css  couleurs (variables en haut du fichier) et mise en page
-test/        tests (Vitest)
+test/        tests unitaires (Vitest)
+e2e/         test de l'export de la story dans un vrai navigateur (Playwright)
 ```
 
 ### Recettes
@@ -134,6 +200,12 @@ test/        tests (Vitest)
   lancement.
 - **Changer une limite** (280, 2 200, 5 hashtags) : `src/core/model.ts`, puis
   adapter les tests.
+- **Changer le style par défaut des zones de texte** (taille, couleur, fond…) :
+  `DEFAULT_STYLE` dans `src/story/scene.ts`.
+- **Ajouter ou changer une police de story** : installe-la depuis npm
+  (`npm install --save-exact @fontsource/<nom>`), puis ajoute une entrée dans
+  `STORY_FONTS` de `src/story/fonts.ts` (fichiers woff2 « latin » et
+  « latin-ext »). Vérifie qu'elle gère les accents français.
 
 ### Choix techniques
 
@@ -142,15 +214,19 @@ test/        tests (Vitest)
   reste confortable pour des formulaires avec des résultats calculés en direct ;
   les sorties sont de simples `computed()` dans `src/state/app.ts`.
 - **idb** pour IndexedDB.
-- **Vitest** (+ happy-dom et Testing Library) pour les tests.
+- **Canvas 2D** pour la story : `Intl.Segmenter` découpe le texte (y compris le
+  japonais, qui n'a pas d'espaces) ; les polices sont chargées avec
+  `document.fonts.load` avant chaque dessin.
+- **Vitest** (+ happy-dom et Testing Library) pour les tests unitaires,
+  **Playwright** pour le test de l'export dans Chromium.
 - Les versions des dépendances sont **figées** dans `package.json` pour éviter les
   surprises.
 
 ### Publication
 
 Chaque push sur `main` lance le workflow `.github/workflows/deploy.yml` : il
-installe les dépendances, vérifie les types, lance les tests, construit l'app et
-la publie sur GitHub Pages. Sur une pull request, il ne fait que vérifier (pas de
+installe les dépendances, vérifie les types, lance les tests unitaires, construit
+l'app, teste l'export de la story dans Chromium et la publie sur GitHub Pages. Sur une pull request, il ne fait que vérifier (pas de
 publication). Le suivi se fait dans l'onglet **Actions** du dépôt.
 
 Réglage à faire une seule fois : **Settings → Pages → Source : GitHub Actions**.

@@ -8,6 +8,19 @@ import { parseConfig } from '../core/config';
 import type { Config } from '../core/model';
 
 export const DB_NAME = 'llfr-crossposter';
+
+/** Template de story enregistré (le PNG d'origine, intact, et une miniature). */
+export interface StoredTemplate {
+  id: string;
+  name: string;
+  /** Fichier PNG importé, tel quel. */
+  blob: Blob;
+  width: number;
+  height: number;
+  /** Petite image pour les listes (évite de décoder le PNG complet). */
+  thumb: Blob;
+  createdAt: number;
+}
 const DB_VERSION = 1;
 const CONFIG_KEY = 'config';
 /** Copie d'une config illisible, gardée avant qu'elle ne soit remplacée. */
@@ -16,13 +29,13 @@ export const UNREADABLE_BACKUP_KEY = 'config-illisible';
 interface CrossposterDB extends DBSchema {
   /** Réglages (clé → valeur). */
   kv: { key: string; value: unknown };
-  /** Templates de story (étape b). */
-  templates: { key: string; value: { id: string; name: string; blob: Blob; width: number; height: number } };
+  /** Templates de story. */
+  templates: { key: string; value: StoredTemplate };
 }
 
 let dbPromise: Promise<IDBPDatabase<CrossposterDB>> | null = null;
 
-function db(): Promise<IDBPDatabase<CrossposterDB>> {
+export function db(): Promise<IDBPDatabase<CrossposterDB>> {
   if (!dbPromise) {
     dbPromise = openDB<CrossposterDB>(DB_NAME, DB_VERSION, {
       upgrade(database) {

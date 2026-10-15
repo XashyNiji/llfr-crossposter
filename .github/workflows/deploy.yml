@@ -35,6 +35,16 @@ jobs:
       # que soit le nom du dépôt.
       - run: npm run build
 
+      # Test de l'export de la story dans un vrai navigateur (japonais + emojis).
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: resultats-tests-e2e
+          path: test-results
+          retention-days: 7
+
       - if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/configure-pages@v6
 

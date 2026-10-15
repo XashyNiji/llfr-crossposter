@@ -20,6 +20,7 @@ import {
   tweet2Count,
   updateDraft,
 } from '../state/app';
+import { resetStory } from '../state/story';
 import { Counter } from './Counter';
 import { fr } from './fr';
 import { OutputCard } from './OutputCard';
@@ -44,7 +45,10 @@ export function InputScreen() {
   const customMissingHash = hashtagWarnings(parseHashtagList(d.xHashtagsCustom)).missingHash;
 
   function onClear() {
-    if (window.confirm(fr.input.clearConfirm)) clearDraft();
+    if (window.confirm(fr.input.clearConfirm)) {
+      clearDraft();
+      resetStory();
+    }
   }
 
   return (

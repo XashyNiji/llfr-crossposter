@@ -123,6 +123,11 @@ async function persist(next: Config): Promise<void> {
   }
 }
 
+/** Demande la protection du stockage (premier enregistrement, import de template…). */
+export async function ensurePersistence(): Promise<void> {
+  persistence.value = await requestPersistence();
+}
+
 /** Remplace la configuration en mémoire en gardant la saisie cohérente. */
 function applyConfig(next: Config): void {
   batch(() => {
