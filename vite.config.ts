@@ -1,9 +1,10 @@
 import { defineConfig } from 'vitest/config';
 
-// Chemin de publication sur GitHub Pages (https://<compte>.github.io/<dépôt>/).
-// En CI, le workflow le fournit via BASE_PATH (déduit du nom du dépôt),
-// donc renommer le dépôt ne demande aucune modification ici.
-const base = process.env.BASE_PATH ?? '/llfr-crossposter/';
+// Adresses relatives ('./') : l'app fonctionne quel que soit le chemin de
+// publication (https://<compte>.github.io/<dépôt>/), donc renommer le dépôt ne
+// casse rien. La navigation se fait par « # », toutes les pages sont donc
+// servies par le même index.html. BASE_PATH permet de forcer un chemin absolu.
+const base = process.env.BASE_PATH ?? './';
 
 export default defineConfig({
   base,

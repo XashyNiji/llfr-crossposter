@@ -40,6 +40,13 @@ export interface Draft {
   linkMention: LinkMentionKind;
   /** Hashtags Insta cochés (valeurs exactes de la réserve). */
   instaHashtags: string[];
+  /**
+   * Hashtags X du groupe DÉCOCHÉS pour ce tweet (par défaut aucun : tous les
+   * hashtags X du groupe sont utilisés, y compris ceux ajoutés plus tard).
+   */
+  xHashtagsOff: string[];
+  /** Hashtags X personnalisés pour ce tweet, saisis tels quels (séparés par des espaces). */
+  xHashtagsCustom: string;
 }
 
 export const CONFIG_SCHEMA_VERSION = 1;

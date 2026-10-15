@@ -36,15 +36,19 @@ rien de payant.
 3. La saisie en cours est gardée dans le téléphone : si Android ferme l'app pendant
    que tu colles le tweet dans X, tu la retrouves en revenant. Il n'y a pas
    d'historique, seulement la saisie du moment.
-4. **Tout effacer** vide les textes, la mention et les hashtags cochés (et la
+4. **Hashtags X** : les hashtags X du groupe sont cochés par défaut. Décoche-les
+   pour gagner des caractères, ou ajoute des hashtags personnalisés pour ce tweet
+   (champ « Autres hashtags X »). La légende Insta n'est pas concernée.
+5. **Tout effacer** vide les textes, la mention et les hashtags cochés (et la
    saisie gardée). Le groupe choisi est conservé.
-5. **Réglages** : ajoute, modifie, supprime ou réordonne les groupes (↑ / ↓), et
+6. **Réglages** : ajoute, modifie, supprime ou réordonne les groupes (↑ / ↓), et
    change les formulations « Lien en bio » / « Lien en story ».
 
 ### Règles de mise en forme
 
 - **Tweet 1** : préfixe, ligne vide, texte principal, ligne vide, hashtags X
-  séparés par une espace.
+  choisis (ceux du groupe restés cochés, puis les personnalisés) séparés par une
+  espace. Sans hashtag, le tweet s'arrête après le texte.
 - **Tweet 2** : le texte seul.
 - **Légende Insta** : préfixe, texte principal, tweet 2, complément Insta, mention
   du lien, hashtags cochés (dans l'ordre de la réserve), avec une ligne vide entre
@@ -151,8 +155,8 @@ publication). Le suivi se fait dans l'onglet **Actions** du dépôt.
 
 Réglage à faire une seule fois : **Settings → Pages → Source : GitHub Actions**.
 
-Le chemin de publication (`/<nom-du-dépôt>/`) est déduit automatiquement : renommer
-le dépôt ne demande aucune modification du code. Attention : changer d'adresse
+L'app utilise des adresses relatives : elle fonctionne quel que soit le nom du
+dépôt, sans modification du code. Attention : changer d'adresse
 après que le staff a installé l'app crée une nouvelle app (il faudra la
 réinstaller et réimporter la config).
 

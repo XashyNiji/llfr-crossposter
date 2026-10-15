@@ -141,6 +141,11 @@ main {
   margin-bottom: 6px;
 }
 
+.sublabel {
+  font-weight: 600;
+  margin-top: 6px;
+}
+
 .hint {
   font-weight: 400;
   color: var(--muted);
